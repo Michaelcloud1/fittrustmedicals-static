@@ -17,9 +17,9 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
-// Create health check client (without /api prefix - health endpoint is at root)
+// Create health check client (without /api prefix - health endpoint is at /api/health)
 const healthClient = axios.create({
-  baseURL: API_BASE_URL,  // ← FIXED: Removed /api from baseURL
+  baseURL: API_BASE_URL,
   timeout: 5000,
   headers: {
     'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ apiClient.interceptors.response.use(
   }
 );
 
-// ✅ EXPORTED: Response wrapper type
+// EXPORTED: Response wrapper type
 export interface ApiResponse<T = any> {
   success?: boolean;
   message?: string;
@@ -296,28 +296,34 @@ export const apiMethods = {
     }
   },
 
-  // ✅ FIXED: Health check endpoint - now correctly calls /health without /api prefix
+  // FIXED: Health check endpoint - now correctly calls /api/health
   health: {
     check: async (): Promise<ApiResponse> => {
       try {
-        // healthClient now has baseURL = http://localhost:3001 (no /api)
-        const response = await healthClient.get('/health');
+        // Try with /api/health first (most NestJS apps have global prefix)
+        const response = await healthClient.get('/api/health');
         return response.data;
-      } catch (error) {
-        console.error('Health check failed:', error);
-        // Return a fallback response instead of throwing
-        return {
-          success: false,
-          status: 'error',
-          message: 'Backend connection failed',
-          timestamp: new Date().toISOString()
-        };
+      } catch (error: any) {
+        // Fallback to /health if /api/health fails
+        try {
+          const fallbackResponse = await healthClient.get('/health');
+          return fallbackResponse.data;
+        } catch (fallbackError) {
+          console.error('Health check failed:', error);
+          // Return a fallback response instead of throwing
+          return {
+            success: false,
+            status: 'error',
+            message: 'Backend connection failed',
+            timestamp: new Date().toISOString()
+          };
+        }
       }
     }
   }
 };
 
-// ✅ NEW: Simple fetch wrapper for components that need basic fetch
+// NEW: Simple fetch wrapper for components that need basic fetch
 export async function fetchProducts() {
   try {
     const response = await apiMethods.products.getHomepage();
@@ -373,7 +379,7 @@ export async function fetchProducts() {
   }
 }
 
-// ✅ NEW: Create product wrapper
+// NEW: Create product wrapper
 export async function createProduct(productData: any) {
   try {
     const response = await apiMethods.products.create(productData);

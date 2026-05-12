@@ -100,8 +100,10 @@ export default function CheckoutPage() {
       const firstName = nameParts[0] || 'Customer';
       const lastName = nameParts.slice(1).join(' ') || 'User';
 
-      // Use the backend URL from environment variables
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      // FIXED: Use NEXT_PUBLIC_BACKEND_URL as primary (not BACKEND_API_URL)
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3001';
+      
+      console.log('🔍 Backend URL:', backendUrl); // Debug log
       
       const response = await fetch(`${backendUrl}/api/orders`, {
         method: 'POST',

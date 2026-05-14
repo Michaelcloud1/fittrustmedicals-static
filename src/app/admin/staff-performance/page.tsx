@@ -1,25 +1,121 @@
 'use client';
 
-import { useAuthStore } from '@/stores/authStore';
+import { useState, useEffect } from 'react';
 import { 
   BarChart3, 
   Users, 
   ShoppingCart, 
   TrendingUp,
   Award,
-  Calendar
+  Calendar,
+  Loader2
 } from 'lucide-react';
 
+interface StaffPerformance {
+  staffId: string;
+  staffName: string;
+  ordersProcessed: number;
+  totalSales: number;
+  customersServed: number;
+  lastActive: Date;
+}
+
+interface DashboardStats {
+  totalStaff: number;
+  totalSales: number;
+  totalOrders: number;
+  avgOrderValue: number;
+}
+
 export default function StaffPerformancePage() {
-  const { getTopPerformingStaff, getStaffPerformance, orders } = useAuthStore();
-  
-  const topStaff = getTopPerformingStaff();
-  const allStaff = getStaffPerformance();
-  
-  // Calculate metrics
-  const totalSales = orders.reduce((sum, o) => sum + o.total, 0);
-  const totalOrders = orders.length;
-  const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+  const [staffData, setStaffData] = useState<StaffPerformance[]>([]);
+  const [topStaff, setTopStaff] = useState<StaffPerformance[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalStaff: 0,
+    totalSales: 0,
+    totalOrders: 0,
+    avgOrderValue: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
+
+  // Fetch all staff performance
+  const fetchStaffPerformance = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/staff/performance`);
+      if (!response.ok) throw new Error('Failed to fetch staff data');
+      const result = await response.json();
+      const staffList = result.data || [];
+      setStaffData(staffList);
+
+      // Calculate stats
+      const totalStaff = staffList.length;
+      const totalSales = staffList.reduce((sum: number, s: StaffPerformance) => sum + s.totalSales, 0);
+      const totalOrders = staffList.reduce((sum: number, s: StaffPerformance) => sum + s.ordersProcessed, 0);
+      const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+      setStats({
+        totalStaff,
+        totalSales,
+        totalOrders,
+        avgOrderValue,
+      });
+    } catch (err) {
+      console.error('Error fetching staff:', err);
+      setError('Failed to load staff performance data');
+    }
+  };
+
+  // Fetch top performers
+  const fetchTopPerformers = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/staff/top-performers?limit=5`);
+      if (!response.ok) throw new Error('Failed to fetch top performers');
+      const result = await response.json();
+      setTopStaff(result.data || []);
+    } catch (err) {
+      console.error('Error fetching top performers:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStaffPerformance();
+    fetchTopPerformers();
+    
+    // Refresh every 60 seconds
+    const interval = setInterval(() => {
+      fetchStaffPerformance();
+      fetchTopPerformers();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600">{error}</p>
+        <button 
+          onClick={() => { fetchStaffPerformance(); fetchTopPerformers(); }}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -34,7 +130,7 @@ export default function StaffPerformancePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Staff</p>
-              <p className="text-2xl font-bold text-gray-900">{allStaff.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalStaff}</p>
             </div>
             <div className="p-3 bg-blue-50 rounded-lg">
               <Users className="w-6 h-6 text-blue-600" />
@@ -46,7 +142,7 @@ export default function StaffPerformancePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Sales</p>
-              <p className="text-2xl font-bold text-gray-900">₦{totalSales.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">₦{stats.totalSales.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-green-50 rounded-lg">
               <TrendingUp className="w-6 h-6 text-green-600" />
@@ -58,7 +154,7 @@ export default function StaffPerformancePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Orders Processed</p>
-              <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalOrders}</p>
             </div>
             <div className="p-3 bg-orange-50 rounded-lg">
               <ShoppingCart className="w-6 h-6 text-orange-600" />
@@ -70,7 +166,7 @@ export default function StaffPerformancePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Avg Order Value</p>
-              <p className="text-2xl font-bold text-gray-900">₦{avgOrderValue.toFixed(0)}</p>
+              <p className="text-2xl font-bold text-gray-900">₦{Math.round(stats.avgOrderValue).toLocaleString()}</p>
             </div>
             <div className="p-3 bg-purple-50 rounded-lg">
               <BarChart3 className="w-6 h-6 text-purple-600" />
@@ -126,14 +222,14 @@ export default function StaffPerformancePage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Staff Member</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Orders Processed</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Orders</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Total Sales</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Customers Served</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Customers</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Last Active</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {allStaff.map((staff) => (
+              {staffData.map((staff) => (
                 <tr key={staff.staffId} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-900">{staff.staffName}</td>
                   <td className="px-6 py-4 text-gray-600">{staff.ordersProcessed}</td>
@@ -143,11 +239,17 @@ export default function StaffPerformancePage() {
                     <Calendar className="w-4 h-4 mr-2" />
                     {new Date(staff.lastActive).toLocaleDateString()}
                   </td>
-                </tr>
+                 </tr>
               ))}
             </tbody>
-          </table>
+           </table>
         </div>
+        
+        {staffData.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No staff performance data available</p>
+          </div>
+        )}
       </div>
     </div>
   );

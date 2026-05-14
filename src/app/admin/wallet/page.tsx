@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuthStore } from '@/stores/authStore';
 import { 
   Wallet, 
   ArrowUpRight, 
@@ -19,83 +18,161 @@ import {
   EyeOff,
   Banknote,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 
-interface Bank {
+interface BankAccount {
   id: string;
   bankName: string;
   accountNumber: string;
   accountName: string;
   isDefault: boolean;
-  bankCode?: string;
-}
-
-interface Transaction {
-  id: string;
-  type: 'credit' | 'debit';
-  amount: number;
-  status: 'pending' | 'completed' | 'failed';
-  description: string;
-  createdAt: string;
-  reference?: string;
-  customerEmail?: string;
 }
 
 interface WithdrawalRequest {
   id: string;
   amount: number;
   bankAccountId: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: string;
   requestedAt: string;
   processedAt?: string;
 }
 
 export default function AdminWalletPage() {
-  const { 
-    wallet, 
-    getWalletTransactions, 
-    requestWithdrawal, 
-    addBankAccount,
-    removeBankAccount,
-    setDefaultBankAccount,
-    getPendingWithdrawals
-  } = useAuthStore();
-  
+  const [balance, setBalance] = useState(0);
+  const [totalEarned, setTotalEarned] = useState(0);
+  const [totalWithdrawn, setTotalWithdrawn] = useState(0);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showBalance, setShowBalance] = useState(true);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showAddBankModal, setShowAddBankModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [selectedBankId, setSelectedBankId] = useState('');
-  const [showBalance, setShowBalance] = useState(true);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+  const [addBankLoading, setAddBankLoading] = useState(false);
   
   const [bankForm, setBankForm] = useState({
     bankName: '',
     accountNumber: '',
     accountName: '',
-    bankCode: '',
   });
 
-  const transactions = getWalletTransactions(20);
-  const pendingWithdrawals = getPendingWithdrawals();
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
-  // Refresh function - force re-render by fetching fresh data
-  const refreshWalletData = () => {
-    setRefreshing(true);
-    // The store will update automatically
-    setTimeout(() => setRefreshing(false), 500);
+  // Fetch wallet data
+  const fetchWalletData = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/admin/wallet`);
+      if (!response.ok) throw new Error('Failed to fetch wallet');
+      const data = await response.json();
+      setBalance(data.availableBalance || 0);
+      setTotalEarned(data.totalEarned || 0);
+      setTotalWithdrawn(data.totalWithdrawn || 0);
+    } catch (error) {
+      console.error('Error fetching wallet:', error);
+    }
   };
 
-  // Auto-refresh wallet every 30 seconds
+  // Fetch bank accounts (from your API - you may need to create this endpoint)
+  const fetchBankAccounts = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/admin/bank-accounts`);
+      if (response.ok) {
+        const data = await response.json();
+        setBankAccounts(data);
+      } else {
+        // Fallback to mock if endpoint doesn't exist yet
+        setBankAccounts([
+          {
+            id: '1',
+            bankName: 'Access Bank',
+            accountNumber: '0039373686',
+            accountName: 'FITTRUST NIG LTD',
+            isDefault: true,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching bank accounts:', error);
+    }
+  };
+
+  // Fetch transactions (from orders)
+  const fetchTransactions = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/orders`);
+      if (!response.ok) throw new Error('Failed to fetch orders');
+      const orders = await response.json();
+      
+      // Convert orders to transaction format
+      const txns = orders.flatMap((order: any) => {
+        const transactionsList = [];
+        
+        // Credit transaction (when order is paid)
+        if (order.paymentStatus === 'PAID') {
+          transactionsList.push({
+            id: `${order.id}_credit`,
+            type: 'credit',
+            amount: order.totalAmount,
+            status: 'completed',
+            description: `Order #${order.id.slice(0, 8)} - Customer payment`,
+            createdAt: order.paidAt || order.createdAt,
+            reference: order.transactionReference,
+            customerEmail: order.user?.email,
+          });
+        }
+        
+        return transactionsList;
+      });
+      
+      // Sort by date descending
+      txns.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setTransactions(txns);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    }
+  };
+
+  // Fetch pending withdrawals
+  const fetchPendingWithdrawals = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/admin/withdrawals/pending`);
+      if (response.ok) {
+        const data = await response.json();
+        setPendingWithdrawals(data);
+      } else {
+        setPendingWithdrawals([]);
+      }
+    } catch (error) {
+      console.error('Error fetching pending withdrawals:', error);
+    }
+  };
+
+  const refreshAllData = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchWalletData(),
+      fetchBankAccounts(),
+      fetchTransactions(),
+      fetchPendingWithdrawals(),
+    ]);
+    setRefreshing(false);
+  };
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      refreshWalletData();
-    }, 30000);
+    refreshAllData();
+    // Refresh every 30 seconds
+    const interval = setInterval(refreshAllData, 30000);
     return () => clearInterval(interval);
   }, []);
 
+  // Request withdrawal
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -106,8 +183,8 @@ export default function AdminWalletPage() {
       return;
     }
     
-    if (amount > wallet?.balance) {
-      setError(`Insufficient balance. Available: ₦${wallet?.balance?.toLocaleString() || 0}`);
+    if (amount > balance) {
+      setError(`Insufficient balance. Available: ₦${balance.toLocaleString()}`);
       return;
     }
     
@@ -116,25 +193,36 @@ export default function AdminWalletPage() {
       return;
     }
 
-    setLoading(true);
+    setWithdrawLoading(true);
     try {
-      const success = await requestWithdrawal(amount, selectedBankId);
-      if (success) {
+      const response = await fetch(`${BACKEND_URL}/api/admin/withdraw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          bankAccountId: selectedBankId,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
         setShowWithdrawModal(false);
         setWithdrawAmount('');
         setSelectedBankId('');
         alert('Withdrawal request submitted successfully!');
-        refreshWalletData();
+        refreshAllData();
       } else {
-        setError('Withdrawal failed. Please try again.');
+        setError(data.error || 'Withdrawal failed. Please try again.');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
     } finally {
-      setLoading(false);
+      setWithdrawLoading(false);
     }
   };
 
+  // Add bank account
   const handleAddBank = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -144,37 +232,46 @@ export default function AdminWalletPage() {
       return;
     }
 
-    setLoading(true);
+    setAddBankLoading(true);
     try {
-      await addBankAccount({
-        ...bankForm,
-        isDefault: wallet?.bankAccounts?.length === 0,
+      const response = await fetch(`${BACKEND_URL}/api/admin/bank-accounts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...bankForm,
+          isDefault: bankAccounts.length === 0,
+        }),
       });
-      setShowAddBankModal(false);
-      setBankForm({ bankName: '', accountNumber: '', accountName: '', bankCode: '' });
-      refreshWalletData();
-      alert('Bank account added successfully!');
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setShowAddBankModal(false);
+        setBankForm({ bankName: '', accountNumber: '', accountName: '' });
+        refreshAllData();
+        alert('Bank account added successfully!');
+      } else {
+        setError(data.error || 'Failed to add bank account');
+      }
     } catch (err) {
       setError('Failed to add bank account');
     } finally {
-      setLoading(false);
+      setAddBankLoading(false);
     }
   };
 
+  // Remove bank account
   const handleRemoveBank = async (accountId: string) => {
     if (confirm('Are you sure you want to remove this bank account?')) {
-      removeBankAccount(accountId);
-      refreshWalletData();
+      try {
+        await fetch(`${BACKEND_URL}/api/admin/bank-accounts/${accountId}`, {
+          method: 'DELETE',
+        });
+        refreshAllData();
+      } catch (error) {
+        console.error('Error removing bank account:', error);
+      }
     }
-  };
-
-  const handleSetDefaultBank = async (accountId: string) => {
-    setDefaultBankAccount(accountId);
-    refreshWalletData();
-  };
-
-  const handleRefresh = () => {
-    refreshWalletData();
   };
 
   const exportTransactions = () => {
@@ -184,14 +281,15 @@ export default function AdminWalletPage() {
     }
     
     const csv = [
-      ['Date', 'Description', 'Type', 'Amount', 'Status', 'Reference'],
+      ['Date', 'Description', 'Type', 'Amount', 'Status', 'Reference', 'Customer Email'],
       ...transactions.map(t => [
         new Date(t.createdAt).toLocaleString(),
         t.description,
         t.type,
         t.amount,
         t.status,
-        t.reference || ''
+        t.reference || '',
+        t.customerEmail || ''
       ])
     ].map(row => row.join(',')).join('\n');
     
@@ -230,13 +328,15 @@ export default function AdminWalletPage() {
     }
   };
 
-  // Safe access with optional chaining
-  const balance = wallet?.balance || 0;
-  const totalEarned = wallet?.totalEarned || 0;
-  const totalWithdrawn = wallet?.totalWithdrawn || 0;
-  const pendingWithdrawalsAmount = wallet?.pendingWithdrawals || 0;
-  const bankAccounts = wallet?.bankAccounts || [];
-  const walletTransactions = transactions || [];
+  if (loading && transactions.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  const pendingWithdrawalsAmount = pendingWithdrawals.reduce((sum, w) => sum + w.amount, 0);
 
   return (
     <div className="space-y-6">
@@ -247,7 +347,7 @@ export default function AdminWalletPage() {
           <p className="text-gray-500 mt-1">Manage payments, withdrawals, and bank accounts</p>
         </div>
         <button
-          onClick={handleRefresh}
+          onClick={refreshAllData}
           disabled={refreshing}
           className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition disabled:opacity-50"
         >
@@ -346,7 +446,7 @@ export default function AdminWalletPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {bankAccounts.map((account: Bank) => (
+            {bankAccounts.map((account) => (
               <div
                 key={account.id}
                 className={`p-4 border rounded-lg transition ${
@@ -369,14 +469,6 @@ export default function AdminWalletPage() {
                     </p>
                   </div>
                   <div className="flex space-x-2">
-                    {!account.isDefault && (
-                      <button
-                        onClick={() => handleSetDefaultBank(account.id)}
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        Set Default
-                      </button>
-                    )}
                     <button
                       onClick={() => handleRemoveBank(account.id)}
                       className="text-xs text-red-600 hover:underline"
@@ -392,15 +484,15 @@ export default function AdminWalletPage() {
       </div>
 
       {/* Pending Withdrawals */}
-      {pendingWithdrawals && pendingWithdrawals.length > 0 && (
+      {pendingWithdrawals.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
           <h2 className="text-lg font-semibold text-yellow-800 mb-4 flex items-center">
             <Clock className="w-5 h-5 mr-2" />
             Pending Withdrawals ({pendingWithdrawals.length})
           </h2>
           <div className="space-y-3">
-            {pendingWithdrawals.map((withdrawal: WithdrawalRequest) => {
-              const bank = bankAccounts.find((b: Bank) => b.id === withdrawal.bankAccountId);
+            {pendingWithdrawals.map((withdrawal) => {
+              const bank = bankAccounts.find(b => b.id === withdrawal.bankAccountId);
               return (
                 <div key={withdrawal.id} className="flex justify-between items-center p-4 bg-white rounded-lg">
                   <div>
@@ -408,10 +500,10 @@ export default function AdminWalletPage() {
                     <p className="text-sm text-gray-500">
                       To: {bank?.bankName} • {bank?.accountName}
                     </p>
-                    <p className="text-xs text-gray-400">Requested: {withdrawal.requestedAt}</p>
+                    <p className="text-xs text-gray-400">Requested: {new Date(withdrawal.requestedAt).toLocaleDateString()}</p>
                   </div>
                   <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm rounded-full">
-                    Processing
+                    {withdrawal.status}
                   </span>
                 </div>
               );
@@ -427,7 +519,7 @@ export default function AdminWalletPage() {
             <History className="w-5 h-5 mr-2 text-blue-600" />
             Transaction History
           </h2>
-          {walletTransactions.length > 0 && (
+          {transactions.length > 0 && (
             <button
               onClick={exportTransactions}
               className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition"
@@ -439,14 +531,14 @@ export default function AdminWalletPage() {
         </div>
 
         <div className="space-y-3">
-          {walletTransactions.length === 0 ? (
+          {transactions.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <CreditCard className="w-12 h-12 mx-auto mb-4 text-gray-300" />
               <p>No transactions yet</p>
               <p className="text-sm">Your payment history will appear here</p>
             </div>
           ) : (
-            walletTransactions.map((txn: Transaction) => (
+            transactions.slice(0, 20).map((txn) => (
               <div key={txn.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                 <div className="flex items-center space-x-4">
                   <div className={`p-2 rounded-lg ${
@@ -464,7 +556,7 @@ export default function AdminWalletPage() {
                       {new Date(txn.createdAt).toLocaleString()}
                     </p>
                     {txn.customerEmail && (
-                      <p className="text-xs text-gray-400">From: {txn.customerEmail}</p>
+                      <p className="text-xs text-gray-400">Customer: {txn.customerEmail}</p>
                     )}
                     {txn.reference && (
                       <p className="text-xs text-gray-400 font-mono">Ref: {txn.reference}</p>
@@ -532,7 +624,7 @@ export default function AdminWalletPage() {
                   required
                 >
                   <option value="">Select account</option>
-                  {bankAccounts.map((account: Bank) => (
+                  {bankAccounts.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.bankName} - {account.accountName} ({account.isDefault ? 'Default' : ''})
                     </option>
@@ -550,10 +642,10 @@ export default function AdminWalletPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={withdrawLoading}
                   className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
                 >
-                  {loading ? 'Processing...' : 'Withdraw'}
+                  {withdrawLoading ? 'Processing...' : 'Withdraw'}
                 </button>
               </div>
             </form>
@@ -622,10 +714,10 @@ export default function AdminWalletPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={addBankLoading}
                   className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
                 >
-                  {loading ? 'Adding...' : 'Add Account'}
+                  {addBankLoading ? 'Adding...' : 'Add Account'}
                 </button>
               </div>
             </form>

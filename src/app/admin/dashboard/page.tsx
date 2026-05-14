@@ -17,20 +17,21 @@ interface WalletData {
 }
 
 interface Order {
-  id: number;
-  total: number;
+  id: string;
+  totalAmount: number;
   paymentStatus: string;
   orderStatus: string;
   createdAt: string;
   user: {
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
-    phone: string;
+    phoneNumber: string;
   };
   items: Array<{
-    name: string;
+    productName: string;
     quantity: number;
-    price: number;
+    unitPrice: number;
   }>;
 }
 
@@ -47,43 +48,19 @@ export default function AdminDashboard() {
     totalWithdrawn: 0,
   });
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
+  const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
 
-  // Fetch dashboard stats
-  const fetchStats = async () => {
-    try {
-      // Fetch real stats from your API
-      const response = await fetch('/api/admin/stats');
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      } else {
-        // Fallback to mock data if API not ready
-        setStats({
-          totalProducts: 150,
-          totalOrders: 245,
-          totalSales: 12450,
-          activeStaff: 8,
-        });
-      }
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
-      // Use mock data as fallback
-      setStats({
-        totalProducts: 150,
-        totalOrders: 245,
-        totalSales: 12450,
-        activeStaff: 8,
-      });
-    }
-  };
+  // Get backend URL from environment
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
   // Fetch wallet data
   const fetchWallet = async () => {
     try {
-      const response = await fetch('/api/admin/wallet');
+      const response = await fetch(`${BACKEND_URL}/api/admin/wallet`);
       const data = await response.json();
       setWallet(data);
     } catch (error) {
@@ -91,12 +68,30 @@ export default function AdminDashboard() {
     }
   };
 
-  // Fetch pending orders
-  const fetchPendingOrders = async () => {
+  // Fetch all orders (pending + all)
+  const fetchOrders = async () => {
     try {
-      const response = await fetch('/api/orders?status=PENDING');
-      const data = await response.json();
-      setPendingOrders(data);
+      // Fetch pending orders
+      const pendingRes = await fetch(`${BACKEND_URL}/api/orders?status=PENDING`);
+      const pendingData = await pendingRes.json();
+      setPendingOrders(pendingData);
+
+      // Fetch all orders
+      const allRes = await fetch(`${BACKEND_URL}/api/orders`);
+      const allData = await allRes.json();
+      setAllOrders(allData);
+
+      // Update stats based on real data
+      const totalOrders = allData.length;
+      const totalSales = allData
+        .filter((order: Order) => order.paymentStatus === 'PAID')
+        .reduce((sum: number, order: Order) => sum + order.totalAmount, 0);
+
+      setStats(prev => ({
+        ...prev,
+        totalOrders: totalOrders,
+        totalSales: totalSales,
+      }));
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     } finally {
@@ -105,16 +100,21 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchStats();
     fetchWallet();
-    fetchPendingOrders();
+    fetchOrders();
+    // Refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchWallet();
+      fetchOrders();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  const handleConfirmPayment = async (orderId: number, transactionReference: string) => {
+  const handleConfirmPayment = async (orderId: string, transactionReference: string) => {
     setConfirmingOrderId(orderId);
     
     try {
-      const response = await fetch('/api/admin/confirm-payment', {
+      const response = await fetch(`${BACKEND_URL}/api/admin/confirm-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId, transactionReference }),
@@ -124,13 +124,13 @@ export default function AdminDashboard() {
 
       if (data.success) {
         alert('✅ Payment confirmed! Customer has been notified via email.');
-        fetchPendingOrders();
-        fetchWallet();
-        fetchStats();
+        await fetchOrders();
+        await fetchWallet();
       } else {
         alert(data.error || 'Failed to confirm payment.');
       }
     } catch (error) {
+      console.error('Confirmation error:', error);
       alert('Something went wrong. Please try again.');
     } finally {
       setConfirmingOrderId(null);
@@ -139,7 +139,6 @@ export default function AdminDashboard() {
 
   const handleWithdraw = (amount: number) => {
     fetchWallet();
-    fetchStats();
     alert(`✅ Withdrawal of ₦${amount.toLocaleString()} recorded successfully!`);
   };
 
@@ -169,7 +168,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats Grid - Original Stats */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center">
@@ -220,7 +219,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Wallet Section - NEW */}
+      {/* Wallet Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg shadow p-6 text-white">
           <h3 className="text-white/80 text-sm">Available Balance</h3>
@@ -246,72 +245,144 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Pending Orders Section - NEW */}
+      {/* Orders Tabs */}
       <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Pending Orders</h2>
-          <p className="text-sm text-gray-500">Orders awaiting payment confirmation</p>
+        <div className="border-b">
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`px-6 py-3 text-sm font-medium ${
+                activeTab === 'pending'
+                  ? 'border-b-2 border-green-500 text-green-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Pending Orders ({pendingOrders.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-6 py-3 text-sm font-medium ${
+                activeTab === 'all'
+                  ? 'border-b-2 border-green-500 text-green-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              All Orders ({allOrders.length})
+            </button>
+          </div>
         </div>
-        
-        <div className="divide-y">
-          {pendingOrders.length === 0 ? (
-            <div className="p-6 text-center text-gray-500">
-              No pending orders
-            </div>
-          ) : (
-            pendingOrders.map((order) => (
-              <div key={order.id} className="p-6">
-                <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-semibold text-gray-900">
-                        Order #FT-{order.id}
-                      </span>
-                      <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
-                        PENDING
-                      </span>
+
+        {/* Pending Orders Tab */}
+        {activeTab === 'pending' && (
+          <div className="divide-y">
+            {pendingOrders.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">
+                No pending orders
+              </div>
+            ) : (
+              pendingOrders.map((order) => (
+                <div key={order.id} className="p-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-semibold text-gray-900">
+                          Order #{order.id.slice(0, 8)}...
+                        </span>
+                        <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
+                          {order.paymentStatus}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Customer: {order.user?.firstName} {order.user?.lastName}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Email: {order.user?.email}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Phone: {order.user?.phoneNumber || 'Not provided'}
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900 mt-2">
+                        Amount: ₦{order.totalAmount?.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Placed on {new Date(order.createdAt).toLocaleString()}
+                      </p>
                     </div>
-                    <p className="text-sm text-gray-600">
-                      {order.user?.name} • {order.user?.email}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Phone: {order.user?.phone || 'Not provided'}
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900 mt-2">
-                      ₦{order.total?.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Placed on {new Date(order.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  
-                  <div className="w-full md:w-64 space-y-2">
-                    <input
-                      type="text"
-                      id={`ref-${order.id}`}
-                      placeholder="Transaction reference from bank alert"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
-                    />
-                    <button
-                      onClick={() => {
-                        const refInput = document.getElementById(`ref-${order.id}`) as HTMLInputElement;
-                        if (!refInput.value) {
-                          alert('Please enter the transaction reference from bank alert');
-                          return;
-                        }
-                        handleConfirmPayment(order.id, refInput.value);
-                      }}
-                      disabled={confirmingOrderId === order.id}
-                      className="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50"
-                    >
-                      {confirmingOrderId === order.id ? 'Confirming...' : 'Confirm Payment'}
-                    </button>
+                    
+                    <div className="w-full md:w-80 space-y-2">
+                      <input
+                        type="text"
+                        id={`ref-${order.id}`}
+                        placeholder="Enter transaction reference"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      />
+                      <button
+                        onClick={() => {
+                          const refInput = document.getElementById(`ref-${order.id}`) as HTMLInputElement;
+                          if (!refInput.value) {
+                            alert('Please enter the transaction reference');
+                            return;
+                          }
+                          handleConfirmPayment(order.id, refInput.value);
+                        }}
+                        disabled={confirmingOrderId === order.id}
+                        className="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700"
+                      >
+                        {confirmingOrderId === order.id ? 'Confirming...' : 'Confirm Payment'}
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* All Orders Tab */}
+        {activeTab === 'all' && (
+          <div className="divide-y">
+            {allOrders.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">
+                No orders found
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              allOrders.map((order) => (
+                <div key={order.id} className="p-6">
+                  <div className="flex flex-wrap justify-between items-start gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-sm text-gray-600">
+                          {order.id.slice(0, 12)}...
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          order.paymentStatus === 'PAID' 
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {order.paymentStatus}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700">
+                        {order.user?.firstName} {order.user?.lastName}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-gray-900">
+                        ₦{order.totalAmount?.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {order.items?.length || 0} item(s)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}
@@ -334,38 +405,6 @@ export default function AdminDashboard() {
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">Settings</div>
           </button>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-        <div className="space-y-3">
-          {pendingOrders.length > 0 && (
-            <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">
-                  {pendingOrders.length} order(s) pending payment confirmation
-                </p>
-                <p className="text-xs text-gray-500">Awaiting your action</p>
-              </div>
-            </div>
-          )}
-          {[
-            { action: 'New order received', time: '2 minutes ago', type: 'order' },
-            { action: 'Product "Medical Kit" updated', time: '15 minutes ago', type: 'product' },
-            { action: 'Staff member Jane Smith logged in', time: '1 hour ago', type: 'staff' },
-            { action: 'Low stock alert: Thermometer', time: '2 hours ago', type: 'inventory' },
-          ].map((activity, index) => (
-            <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                <p className="text-xs text-gray-500">{activity.time}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 

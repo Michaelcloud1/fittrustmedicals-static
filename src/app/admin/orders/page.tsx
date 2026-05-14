@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Eye, Download, Filter } from 'lucide-react';
+import { Eye, Download, Filter, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 interface OrderItem {
@@ -20,6 +20,7 @@ interface Order {
   paymentStatus: string;
   orderStatus: string;
   createdAt: string;
+  transactionReference?: string;
   user: {
     firstName: string;
     lastName: string;
@@ -34,6 +35,8 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(null);
+  const [transactionRefs, setTransactionRefs] = useState<Record<string, string>>({});
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
@@ -56,9 +59,49 @@ export default function AdminOrdersPage() {
     }
   };
 
+  // Confirm payment
+  const handleConfirmPayment = async (orderId: string) => {
+    const transactionReference = transactionRefs[orderId];
+    if (!transactionReference) {
+      alert('Please enter the transaction reference from bank alert');
+      return;
+    }
+
+    setConfirmingOrderId(orderId);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/admin/confirm-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, transactionReference }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('✅ Payment confirmed! Customer has been notified via email.');
+        setTransactionRefs(prev => {
+          const newRefs = { ...prev };
+          delete newRefs[orderId];
+          return newRefs;
+        });
+        fetchOrders();
+      } else {
+        alert(data.error || 'Failed to confirm payment.');
+      }
+    } catch (err) {
+      console.error('Confirmation error:', err);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setConfirmingOrderId(null);
+    }
+  };
+
+  const updateTransactionRef = (orderId: string, value: string) => {
+    setTransactionRefs(prev => ({ ...prev, [orderId]: value }));
+  };
+
   useEffect(() => {
     fetchOrders();
-    // Refresh every 30 seconds
     const interval = setInterval(fetchOrders, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -108,7 +151,7 @@ export default function AdminOrdersPage() {
   };
 
   const exportToCSV = () => {
-    const headers = ['Order ID', 'Customer', 'Email', 'Phone', 'Amount', 'Status', 'Date', 'Items'];
+    const headers = ['Order ID', 'Customer', 'Email', 'Phone', 'Amount', 'Status', 'Date', 'Items', 'Transaction Ref'];
     const csvData = filteredOrders.map(order => [
       order.id.slice(0, 12),
       `${order.user?.firstName || ''} ${order.user?.lastName || ''}`,
@@ -117,7 +160,8 @@ export default function AdminOrdersPage() {
       order.totalAmount?.toString() || '0',
       getStatusLabel(order),
       formatDate(order.createdAt),
-      order.items?.length?.toString() || '0'
+      order.items?.length?.toString() || '0',
+      order.transactionReference || ''
     ]);
 
     const csvContent = [headers, ...csvData].map(row => row.join(',')).join('\n');
@@ -128,6 +172,10 @@ export default function AdminOrdersPage() {
     a.download = `orders-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleRefresh = () => {
+    fetchOrders();
   };
 
   if (loading) {
@@ -173,22 +221,34 @@ export default function AdminOrdersPage() {
     );
   }
 
+  const pendingOrdersCount = orders.filter(o => o.paymentStatus === 'PENDING').length;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-600 mt-1">Manage customer orders</p>
+          <p className="text-gray-600 mt-1">Manage customer orders and confirm payments</p>
         </div>
-        <Button 
-          variant="secondary" 
-          className="flex items-center gap-2"
-          onClick={exportToCSV}
-          disabled={orders.length === 0}
-        >
-          <Download size={20} />
-          Export CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="secondary" 
+            className="flex items-center gap-2"
+            onClick={handleRefresh}
+          >
+            <RefreshCw size={20} />
+            Refresh
+          </Button>
+          <Button 
+            variant="secondary" 
+            className="flex items-center gap-2"
+            onClick={exportToCSV}
+            disabled={orders.length === 0}
+          >
+            <Download size={20} />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -201,7 +261,7 @@ export default function AdminOrdersPage() {
           <p className="text-2xl font-bold text-yellow-600">
             {orders.filter(o => o.paymentStatus === 'PENDING').length}
           </p>
-          <p className="text-sm text-gray-500">Pending</p>
+          <p className="text-sm text-gray-500">Pending Payment</p>
         </Card>
         <Card className="p-4 text-center">
           <p className="text-2xl font-bold text-green-600">
@@ -237,6 +297,11 @@ export default function AdminOrdersPage() {
               }`}
             >
               {status.charAt(0).toUpperCase() + status.slice(1)}
+              {status === 'pending' && pendingOrdersCount > 0 && (
+                <span className="ml-2 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full">
+                  {pendingOrdersCount}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -254,7 +319,8 @@ export default function AdminOrdersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction Ref</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -286,12 +352,44 @@ export default function AdminOrdersPage() {
                       variant={getStatusColor(order.paymentStatus === 'PAID' ? 'paid' : 'pending') as any}
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link href={`/admin/orders/${order.id}`}>
-                      <button className="text-blue-600 hover:text-blue-800 p-1">
-                        <Eye size={18} />
-                      </button>
-                    </Link>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {order.paymentStatus === 'PENDING' ? (
+                      <input
+                        type="text"
+                        placeholder="Enter transaction ref"
+                        value={transactionRefs[order.id] || ''}
+                        onChange={(e) => updateTransactionRef(order.id, e.target.value)}
+                        className="w-40 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <span className="text-xs text-gray-500 font-mono">
+                        {order.transactionReference?.slice(0, 15)}...
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center gap-2">
+                      <Link href={`/admin/orders/${order.id}`}>
+                        <button className="text-blue-600 hover:text-blue-800 p-1" title="View Details">
+                          <Eye size={18} />
+                        </button>
+                      </Link>
+                      {order.paymentStatus === 'PENDING' && (
+                        <button
+                          onClick={() => handleConfirmPayment(order.id)}
+                          disabled={confirmingOrderId === order.id}
+                          className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm"
+                          title="Confirm Payment"
+                        >
+                          {confirmingOrderId === order.id ? (
+                            <RefreshCw size={14} className="animate-spin" />
+                          ) : (
+                            <CheckCircle size={14} />
+                          )}
+                          Confirm
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -22,12 +22,13 @@ export default function BankTransferDisplay({
   customerName 
 }: BankTransferDisplayProps) {
   const [copied, setCopied] = useState<string | null>(null);
+  const [notified, setNotified] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // ✅ ADMIN'S ACCESS BANK DETAILS - HARDCODED
   const bankDetails: BankDetails = {
     bankName: 'Access Bank Nigeria',
     accountName: 'FITTRUST NIG LTD',
-    accountNumber: ' 0039373686',
+    accountNumber: '0039373686',
   };
 
   const copyToClipboard = (text: string, field: string) => {
@@ -35,6 +36,81 @@ export default function BankTransferDisplay({
     setCopied(field);
     setTimeout(() => setCopied(null), 2000);
   };
+
+  const handleIHavePaid = async () => {
+    setLoading(true);
+    try {
+      // Send notification to admin with customer details
+      const response = await fetch('/api/notify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: `FT-${orderId}`,
+          customerName,
+          customerEmail,
+          totalAmount,
+        }),
+      });
+
+      if (response.ok) {
+        // Clear the cart
+        const cartStore = useCartStore.getState();
+        cartStore.clearCart();
+        
+        // Also clear localStorage
+        localStorage.removeItem('cart');
+        localStorage.removeItem('cartItems');
+        
+        // Dispatch event to update cart UI
+        window.dispatchEvent(new Event('cartUpdated'));
+        
+        setNotified(true);
+        
+        // Redirect to home page after 3 seconds
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+      } else {
+        alert('Failed to notify admin. Please contact support.');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Something went wrong. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  // Show thank you page after notification
+  if (notified) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank You for Your Payment!</h2>
+          <p className="text-gray-600 mb-4">
+            Dear {customerName}, your payment notification has been sent.
+          </p>
+          <div className="bg-gray-50 p-4 rounded-lg mb-4 text-left">
+            <p className="font-semibold mb-2">Order Summary:</p>
+            <p className="text-sm">Order ID: <strong>FT-{orderId}</strong></p>
+            <p className="text-sm">Amount: <strong>₦{totalAmount.toLocaleString()}</strong></p>
+            <p className="text-sm">Status: <span className="text-yellow-600">Pending Verification</span></p>
+          </div>
+          <p className="text-sm text-gray-500">
+            The admin will contact you shortly for delivery confirmation.
+          </p>
+          <p className="text-xs text-gray-400 mt-4">
+            Redirecting to home page...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -97,21 +173,28 @@ export default function BankTransferDisplay({
 
             {/* Instructions */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm font-semibold text-blue-800 mb-2">📝 Important Instructions:</p>
+              <p className="text-sm font-semibold text-blue-800 mb-2">📝 Instructions:</p>
               <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
                 <li>Use your <strong>Order ID: FT-{orderId}</strong> as transaction reference</li>
                 <li>Send the exact amount of <strong>₦{totalAmount.toLocaleString()}</strong></li>
-                <li>Payment is processed instantly</li>
-                <li>Your order will be confirmed within minutes</li>
-                <li>After payment, send the transaction reference to our support</li>
+                <li>After payment, click <strong>"I Have Made the Payment"</strong> below</li>
+                <li>The admin will contact you for delivery confirmation</li>
               </ul>
             </div>
 
             {/* Order Info */}
-            <div className="text-center text-sm text-gray-500 pt-2">
-              <p>After payment, you will receive a confirmation email.</p>
-              <p className="mt-1">Order ID: <strong className="font-mono">FT-{orderId}</strong></p>
+            <div className="text-center text-sm text-gray-500">
+              Order ID: <strong className="font-mono">FT-{orderId}</strong>
             </div>
+
+            {/* I Have Paid Button */}
+            <button
+              onClick={handleIHavePaid}
+              disabled={loading}
+              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition disabled:opacity-50 font-semibold"
+            >
+              {loading ? 'Sending Notification...' : '✓ I Have Made the Payment'}
+            </button>
 
             {/* Support Contact */}
             <div className="bg-gray-50 rounded-lg p-3 text-center text-xs text-gray-500">

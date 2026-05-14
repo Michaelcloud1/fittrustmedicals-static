@@ -16,6 +16,8 @@ export async function POST(request: NextRequest) {
   try {
     const { orderId, customerName, customerEmail, totalAmount } = await request.json();
 
+    console.log('Received notification request:', { orderId, customerName, customerEmail, totalAmount });
+
     // Email to Admin
     const adminHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px;">
@@ -26,16 +28,19 @@ export async function POST(request: NextRequest) {
         <p><strong>Amount:</strong> ₦${totalAmount.toLocaleString()}</p>
         <p><strong>Status:</strong> Payment made, awaiting verification</p>
         <hr />
-        <p><a href="${process.env.FRONTEND_URL}/admin/orders" style="background: #2c7da0; color: white; padding: 10px 20px; text-decoration: none;">View Orders</a></p>
+        <p>Please log in to the admin dashboard to verify this payment and update the order status.</p>
+        <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/dashboard" style="background: #2c7da0; color: white; padding: 10px 20px; text-decoration: none;">View Dashboard</a></p>
       </div>
     `;
 
     await transporter.sendMail({
       from: `"FitTrust Medicals" <${process.env.GMAIL_USERNAME}>`,
       to: process.env.ADMIN_EMAIL || 'fittrustsurgical56@gmail.com',
-      subject: `💰 Payment Notification - Order ${orderId}`,
+      subject: `💰 Payment Notification - ${orderId}`,
       html: adminHtml,
     });
+
+    console.log('Admin email sent successfully');
 
     return NextResponse.json({ success: true, message: 'Admin notified' });
   } catch (error) {

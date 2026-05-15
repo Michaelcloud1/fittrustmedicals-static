@@ -49,7 +49,7 @@ interface Product {
 
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [campaignProducts, setCampaignProducts] useState<Product[]>([]);
+  const [campaignProducts, setCampaignProducts] = useState<Product[]>([]); // ✅ FIXED: Added missing =
   const [loading, setLoading] = useState(true);
   const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
   const { promotions } = usePromotionsStore();

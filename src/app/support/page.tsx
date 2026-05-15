@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { WhatsAppChat } from '@/components/chat/WhatsAppChat';
+import WhatsAppChat from '@/components/chat/WhatsAppChat'; // ✅ Fixed: default import
 import { 
   Mail, 
   Phone, 

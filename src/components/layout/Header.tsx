@@ -188,7 +188,7 @@ export function Header() {
         </div>
       </div>
 
-      {/* SINGLE SEARCH BAR - Centered Below Logo (Visible on ALL devices) */}
+      {/* SINGLE SEARCH BAR - Centered Below Logo */}
       <div className="bg-white pb-4 pt-2">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
@@ -209,13 +209,11 @@ export function Header() {
         </div>
       </div>
 
-      {/* NO NAVIGATION BAR */}
-
-      {/* MOBILE SIDEBAR MENU */}
+      {/* MOBILE SIDEBAR MENU - Separate from header content */}
       {mobileMenuOpen && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed left-0 top-0 bottom-0 w-80 bg-white z-50 shadow-xl overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 z-[100]" onClick={() => setMobileMenuOpen(false)} />
+          <div className="fixed left-0 top-0 bottom-0 w-80 bg-white z-[101] shadow-xl overflow-y-auto">
             <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
               <span className="font-bold text-blue-600">Menu</span>
               <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-lg hover:bg-gray-100">

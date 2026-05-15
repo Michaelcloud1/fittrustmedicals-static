@@ -2,9 +2,8 @@
 'use client';
 
 import { useState } from 'react';
-import AIChat from '@/components/chat/AIChat';
+import { WhatsAppChat } from '@/components/chat/WhatsAppChat';
 import { 
-  MessageCircle, 
   Mail, 
   Phone, 
   Clock, 
@@ -36,9 +35,6 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
-      {/* AI Chat Component */}
-      <AIChat />
-      
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Header */}
         <div className="text-center mb-12">
@@ -48,7 +44,7 @@ export default function SupportPage() {
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">How Can We Help You?</h1>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Get instant answers with our AI assistant or connect with our support team
+            Contact our support team via WhatsApp, email, or phone
           </p>
         </div>
 
@@ -56,16 +52,21 @@ export default function SupportPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="bg-white rounded-xl shadow-sm p-6 text-center hover:shadow-md transition">
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageCircle className="w-6 h-6 text-green-600" />
+              <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12.032 12.032a.5.5 0 0 0 .16-.08c.06-.04.16-.1.28-.18a1.5 1.5 0 0 0 .48-.64c.04-.12.06-.24.06-.36 0-.12-.02-.24-.06-.36a1.5 1.5 0 0 0-.48-.64c-.12-.08-.22-.14-.28-.18a.5.5 0 0 0-.16-.08.5.5 0 0 0-.2.04 1.5 1.5 0 0 0-.64.48c-.08.12-.14.22-.18.28a.5.5 0 0 0-.08.16.5.5 0 0 0 .04.2c.04.12.1.22.18.28.08.06.16.1.28.18a1.5 1.5 0 0 0 .64.48.5.5 0 0 0 .2.04.5.5 0 0 0 .16-.08z"/>
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+              </svg>
             </div>
-            <h3 className="font-semibold text-gray-800 mb-2">Live AI Chat</h3>
-            <p className="text-gray-500 text-sm mb-4">Instant answers 24/7</p>
-            <button 
-              onClick={() => document.querySelector('button')?.click()}
-              className="text-blue-600 text-sm font-medium inline-flex items-center gap-1 hover:gap-2 transition-all"
+            <h3 className="font-semibold text-gray-800 mb-2">WhatsApp Chat</h3>
+            <p className="text-gray-500 text-sm mb-4">Instant replies 24/7</p>
+            <a 
+              href="https://wa.me/2348164091531?text=Hello!%20I%20need%20help%20with%20medical%20equipment." 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-green-600 text-sm font-medium inline-flex items-center gap-1 hover:gap-2 transition-all"
             >
-              Start Chat <ChevronRight className="w-4 h-4" />
-            </button>
+              Chat Now <ChevronRight className="w-4 h-4" />
+            </a>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-6 text-center hover:shadow-md transition">
@@ -74,8 +75,8 @@ export default function SupportPage() {
             </div>
             <h3 className="font-semibold text-gray-800 mb-2">Email Support</h3>
             <p className="text-gray-500 text-sm mb-4">Response within 24 hours</p>
-            <a href="mailto:support@fittrustmedical.com" className="text-blue-600 text-sm font-medium">
-              support@fittrustmedical.com
+            <a href="mailto:fittrustsurgical56@gmail.com" className="text-blue-600 text-sm font-medium">
+              fittrustsurgical56@gmail.com
             </a>
           </div>
 
@@ -85,8 +86,8 @@ export default function SupportPage() {
             </div>
             <h3 className="font-semibold text-gray-800 mb-2">Phone Support</h3>
             <p className="text-gray-500 text-sm mb-4">Mon-Fri, 9am - 6pm</p>
-            <a href="tel:+2341234567890" className="text-blue-600 text-sm font-medium">
-              +234 123 456 7890
+            <a href="tel:+2348164091531" className="text-blue-600 text-sm font-medium">
+              +234 816 409 1531
             </a>
           </div>
         </div>
@@ -207,6 +208,9 @@ export default function SupportPage() {
           </form>
         </div>
       </div>
+      
+      {/* WhatsApp Chat Button */}
+      <WhatsAppChat />
     </div>
   );
 }

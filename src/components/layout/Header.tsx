@@ -50,16 +50,31 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [mobileMenuOpen]);
+
   const cartItemCount = isClient ? calculateCartCount(items) : 0;
 
   const allCategories = [
-    { name: 'Diagnostic Tools', href: '/products?category=diagnostic' },
-    { name: 'PPE Supplies', href: '/products?category=ppe' },
-    { name: 'Surgical Equipment', href: '/products?category=surgical' },
+    { name: 'Diagnostic Equipment', href: '/products?category=diagnostic' },
+    { name: 'Surgical Supplies', href: '/products?category=surgical' },
+    { name: 'Patient Monitoring', href: '/products?category=monitoring' },
+    { name: 'PPE & Safety', href: '/products?category=ppe' },
     { name: 'First Aid', href: '/products?category=first-aid' },
     { name: 'Lab Equipment', href: '/products?category=lab' },
+    { name: 'Mobility Aids', href: '/products?category=mobility' },
     { name: 'Hospital Furniture', href: '/products?category=furniture' },
     { name: 'Pharmaceuticals', href: '/products?category=pharma' },
+    { name: 'Dental Equipment', href: '/products?category=dental' },
   ];
 
   const handleLogout = async () => {
@@ -104,6 +119,23 @@ export function Header() {
                 </span>
               </div>
             </Link>
+
+            {/* Search Bar - Desktop (Hidden on mobile, shown in sidebar) */}
+            <div className="hidden md:block flex-1 max-w-xl mx-4">
+              <form onSubmit={handleSearch} className="relative">
+                <Search 
+                  size={18} 
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Search products, brands and more..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full py-2.5 pl-10 pr-4 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50"
+                />
+              </form>
+            </div>
 
             {/* Icons - Cart & User */}
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -173,30 +205,26 @@ export function Header() {
         </div>
       </div>
 
-      {/* SEARCH BAR - Centered Below Logo */}
-      <div className="bg-white pb-4">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto">
-            <form onSubmit={handleSearch} className="relative">
-              <Search 
-                size={18} 
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                placeholder="Search products, brands and more..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full py-3 pl-10 pr-4 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50"
-              />
-            </form>
-          </div>
-        </div>
+      {/* Search Bar - Mobile Only (Below logo, before content) */}
+      <div className="md:hidden bg-white px-4 py-2 border-b border-gray-100">
+        <form onSubmit={handleSearch} className="relative">
+          <Search 
+            size={16} 
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full py-2 pl-9 pr-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
+          />
+        </form>
       </div>
 
       {/* NO NAVIGATION BAR - COMPLETELY REMOVED */}
 
-      {/* MOBILE SIDEBAR MENU */}
+      {/* MOBILE SIDEBAR MENU - Categories only, no search bar inside */}
       {mobileMenuOpen && (
         <>
           <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setMobileMenuOpen(false)} />
@@ -239,7 +267,7 @@ export function Header() {
                   onClick={() => setMobileCategoriesOpen(!mobileCategoriesOpen)}
                   className="flex items-center justify-between w-full py-2 text-gray-800 font-semibold"
                 >
-                  Shop by Category
+                  Categories
                   <ChevronDown size={16} className={`transition-transform ${mobileCategoriesOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {mobileCategoriesOpen && (

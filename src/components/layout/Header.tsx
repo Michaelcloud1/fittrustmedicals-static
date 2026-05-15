@@ -29,8 +29,12 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
+  const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
+  const [shopDropdownOpen, setShopDropdownOpen] = useState(false);
 
   const accountRef = useRef<HTMLDivElement>(null);
+  const categoriesRef = useRef<HTMLDivElement>(null);
+  const shopRef = useRef<HTMLDivElement>(null);
 
   const { customer, isAuthenticated, logout } = useAuthStore();
   const { items } = useCartStore();
@@ -39,11 +43,17 @@ export function Header() {
     setIsClient(true);
   }, []);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
         setAccountDropdownOpen(false);
+      }
+      if (categoriesRef.current && !categoriesRef.current.contains(event.target as Node)) {
+        setCategoriesDropdownOpen(false);
+      }
+      if (shopRef.current && !shopRef.current.contains(event.target as Node)) {
+        setShopDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -65,6 +75,14 @@ export function Header() {
     { name: 'Dental Equipment', href: '/products?category=dental' },
   ];
 
+  const shopLinks = [
+    { name: 'All Products', href: '/products' },
+    { name: 'Trending Now', href: '/products?sort=trending' },
+    { name: 'Best Sellers', href: '/products?sort=bestsellers' },
+    { name: 'New Arrivals', href: '/products?sort=new' },
+    { name: 'On Sale', href: '/products?sort=sale' },
+  ];
+
   const handleLogout = async () => {
     await logout();
     router.push('/');
@@ -83,13 +101,13 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
-      {/* Top Bar - Company Name Centered (Jumia Style) */}
+      {/* Top Bar - Logo and Company Name on Same Line */}
       <div className="border-b border-gray-100 bg-white">
         <div className="container mx-auto px-4 py-3">
-          {/* Logo + Company Name - Centered */}
-          <div className="flex flex-col items-center justify-center text-center">
-            <Link href="/" className="flex flex-col items-center">
-              <div className="relative w-12 h-12 mb-1">
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo + Company Name - Same Line */}
+            <Link href="/" className="flex items-center gap-3 flex-shrink-0">
+              <div className="relative w-10 h-10 md:w-12 md:h-12">
                 <Image
                   src="/images/logo.png"
                   alt="Fittrust Medicals"
@@ -98,182 +116,172 @@ export function Header() {
                   priority
                 />
               </div>
-              <span className="text-xl md:text-2xl font-bold text-blue-600">
-                FITTRUST MEDICALS
-              </span>
-              <span className="text-[10px] md:text-xs text-gray-500">
-                Healthcare Supplies
-              </span>
+              <div className="flex flex-col">
+                <span className="text-lg md:text-xl font-bold text-blue-600">
+                  FITTRUST MEDICALS
+                </span>
+                <span className="text-[10px] md:text-xs text-gray-500">
+                  Healthcare Supplies
+                </span>
+              </div>
             </Link>
-          </div>
-        </div>
-      </div>
 
-      {/* Search Bar - Centered Below Company Name (Jumia Style) */}
-      <div className="bg-white pb-4">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <form onSubmit={handleSearch} className="relative">
-              <Search 
-                size={20} 
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                placeholder="Search products, brands and categories..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full py-3 pl-12 pr-4 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50"
-              />
+            {/* Icons - Cart & User (Moved to right side) */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* User/Login Dropdown */}
+              <div className="relative" ref={accountRef}>
+                <button
+                  onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                >
+                  <User size={20} />
+                </button>
+                {accountDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                    {isAuthenticated ? (
+                      <>
+                        <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          My Account
+                        </Link>
+                        <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          My Orders
+                        </Link>
+                        <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Wishlist
+                        </Link>
+                        <hr className="my-1" />
+                        <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                          Logout
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Sign In
+                        </Link>
+                        <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Create Account
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Cart */}
+              <Link 
+                href="/cart" 
+                className="relative p-2 rounded-lg hover:bg-gray-100"
+                aria-label="Shopping cart"
+              >
+                <ShoppingCart size={20} />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                    {cartItemCount > 99 ? '99+' : cartItemCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Mobile Menu Button */}
               <button
-                type="submit"
-                className="absolute right-1 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-6 py-1.5 rounded-full text-sm font-medium hover:bg-blue-700 transition"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 rounded-lg hover:bg-gray-100"
               >
-                Search
+                <Menu size={22} />
               </button>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Menu - Jumia Style Category Bar */}
-      <div className="border-t border-gray-100 bg-gray-50">
-        <div className="container mx-auto px-4">
-          {/* Desktop Categories - Horizontal Scroll */}
-          <div className="hidden md:flex items-center gap-6 py-3 overflow-x-auto whitespace-nowrap scrollbar-hide">
-            <Link href="/products" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
-              All Products
-            </Link>
-            {allCategories.slice(0, 8).map((cat) => (
-              <Link
-                key={cat.name}
-                href={cat.href}
-                className="text-gray-700 hover:text-blue-600 text-sm font-medium"
-              >
-                {cat.name}
-              </Link>
-            ))}
-            <Link href="/sale" className="text-red-600 hover:text-red-700 text-sm font-medium">
-              🔥 Hot Deals
-            </Link>
-          </div>
-
-          {/* Mobile Category Row - Simple Icons/Text */}
-          <div className="md:hidden py-2">
-            <div className="flex items-center justify-around">
-              <Link href="/products" className="flex flex-col items-center">
-                <span className="text-xs text-gray-600">🛒</span>
-                <span className="text-[10px] text-gray-500">Shop</span>
-              </Link>
-              <Link href="/categories/diagnostic" className="flex flex-col items-center">
-                <span className="text-xs text-gray-600">🔬</span>
-                <span className="text-[10px] text-gray-500">Diagnostic</span>
-              </Link>
-              <Link href="/categories/ppe" className="flex flex-col items-center">
-                <span className="text-xs text-gray-600">🛡️</span>
-                <span className="text-[10px] text-gray-500">PPE</span>
-              </Link>
-              <Link href="/categories/surgical" className="flex flex-col items-center">
-                <span className="text-xs text-gray-600">⚕️</span>
-                <span className="text-[10px] text-gray-500">Surgical</span>
-              </Link>
-              <Link href="/sale" className="flex flex-col items-center">
-                <span className="text-xs text-red-500">🔥</span>
-                <span className="text-[10px] text-red-500">Deals</span>
-              </Link>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Icons Row - Cart & User (Floating on Desktop, Fixed on Mobile) */}
-      {/* Desktop Icons - Top Right */}
-      <div className="hidden md:block absolute top-4 right-8">
-        <div className="flex items-center gap-3">
-          {/* User/Login Icon */}
-          <div className="relative" ref={accountRef}>
-            <button
-              onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100"
-            >
-              <User size={20} />
-            </button>
-            {accountDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                {isAuthenticated ? (
-                  <>
-                    <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                      My Account
-                    </Link>
-                    <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                      My Orders
-                    </Link>
-                    <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                      Wishlist
-                    </Link>
-                    <hr className="my-1" />
-                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                      Logout
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                      Sign In
-                    </Link>
-                    <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                      Create Account
-                    </Link>
-                  </>
-                )}
-              </div>
-            )}
+      {/* SEARCH BAR - MOVED DOWN HERE (Only change) */}
+      <div className="bg-white pb-4">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto">
+            <form onSubmit={handleSearch} className="relative">
+              <Search 
+                size={18} 
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Search products, brands and more..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full py-3 pl-10 pr-4 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50"
+              />
+            </form>
           </div>
-
-          {/* Cart */}
-          <Link 
-            href="/cart" 
-            className="relative p-2 rounded-lg hover:bg-gray-100"
-            aria-label="Shopping cart"
-          >
-            <ShoppingCart size={20} />
-            {cartItemCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
-                {cartItemCount > 99 ? '99+' : cartItemCount}
-              </span>
-            )}
-          </Link>
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation Bar (Cart & User) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-4 z-50">
-        <div className="flex justify-around items-center">
-          <Link href="/" className="flex flex-col items-center">
-            <span className="text-xl">🏠</span>
-            <span className="text-[10px] text-gray-500">Home</span>
-          </Link>
-          <Link href="/products" className="flex flex-col items-center">
-            <span className="text-xl">🛍️</span>
-            <span className="text-[10px] text-gray-500">Shop</span>
-          </Link>
-          <Link href="/wishlist" className="flex flex-col items-center">
-            <span className="text-xl">❤️</span>
-            <span className="text-[10px] text-gray-500">Wishlist</span>
-          </Link>
-          <Link href="/account" className="flex flex-col items-center">
-            <span className="text-xl">👤</span>
-            <span className="text-[10px] text-gray-500">Account</span>
-          </Link>
-          <Link href="/cart" className="relative flex flex-col items-center">
-            <span className="text-xl">🛒</span>
-            {cartItemCount > 0 && (
-              <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
-                {cartItemCount}
-              </span>
-            )}
-            <span className="text-[10px] text-gray-500">Cart</span>
-          </Link>
+      {/* Navigation Bar - Desktop Dropdowns */}
+      <div className="hidden md:block border-t border-gray-100 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center gap-8 py-3">
+            {/* Categories Dropdown */}
+            <div className="relative" ref={categoriesRef}>
+              <button
+                onClick={() => setCategoriesDropdownOpen(!categoriesDropdownOpen)}
+                className="flex items-center gap-1 text-gray-700 hover:text-blue-600 text-sm font-medium"
+              >
+                Categories
+                <ChevronDown size={14} className={`transition-transform ${categoriesDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {categoriesDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50 border">
+                  {allCategories.map((cat) => (
+                    <Link
+                      key={cat.name}
+                      href={cat.href}
+                      onClick={() => setCategoriesDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Shop Dropdown */}
+            <div className="relative" ref={shopRef}>
+              <button
+                onClick={() => setShopDropdownOpen(!shopDropdownOpen)}
+                className="flex items-center gap-1 text-gray-700 hover:text-blue-600 text-sm font-medium"
+              >
+                Shop
+                <ChevronDown size={14} className={`transition-transform ${shopDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {shopDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                  {shopLinks.map((link) => (
+                    <Link
+                      key={link.name}
+                      href={link.href}
+                      onClick={() => setShopDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      {link.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Link href="/products" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
+              All Products
+            </Link>
+            <Link href="/sale" className="text-red-600 hover:text-red-700 text-sm font-medium">
+              🔥 Hot Deals
+            </Link>
+            <Link href="/contact" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
+              Contact Us
+            </Link>
+            <Link href="/health-blog" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
+              Health Blog
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -314,9 +322,9 @@ export function Header() {
                 </div>
               )}
 
-              {/* All Categories in Mobile Menu */}
+              {/* Categories in Mobile Menu */}
               <div>
-                <h3 className="font-semibold text-gray-800 mb-2 text-sm">All Categories</h3>
+                <h3 className="font-semibold text-gray-800 mb-2 text-sm">Categories</h3>
                 <div className="space-y-1">
                   {allCategories.map((cat) => (
                     <Link
@@ -331,39 +339,37 @@ export function Header() {
                 </div>
               </div>
 
+              {/* Shop Links in Mobile Menu */}
+              <div className="pt-3 border-t">
+                <h3 className="font-semibold text-gray-800 mb-2 text-sm">Shop</h3>
+                <div className="space-y-1">
+                  {shopLinks.map((link) => (
+                    <Link
+                      key={link.name}
+                      href={link.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg"
+                    >
+                      {link.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
               {/* Quick Links */}
               <div className="pt-3 border-t">
                 <h3 className="font-semibold text-gray-800 mb-2 text-sm">Quick Links</h3>
-                <Link href="/" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  Home
+                <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
+                  All Products
                 </Link>
-                <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  About Us
+                <Link href="/sale" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-red-600 hover:text-red-700 rounded-lg">
+                  Hot Deals
                 </Link>
                 <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  Contact
+                  Contact Us
                 </Link>
-              </div>
-
-              {/* Seller Links */}
-              <div className="pt-3 border-t">
-                <h3 className="font-semibold text-gray-800 mb-2 text-sm">For Sellers</h3>
-                <Link href="/sell" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  Sell on Fittrust
-                </Link>
-                <Link href="/partner" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  Partner Hub
-                </Link>
-              </div>
-
-              {/* Support */}
-              <div className="pt-3 border-t">
-                <h3 className="font-semibold text-gray-800 mb-2 text-sm">Support</h3>
-                <Link href="/payment-shipping" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  Payment & Shipping
-                </Link>
-                <Link href="/faq" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  Help & FAQ
+                <Link href="/health-blog" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
+                  Health Blog
                 </Link>
               </div>
             </div>

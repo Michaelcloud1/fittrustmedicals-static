@@ -49,7 +49,7 @@ interface Product {
 
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [campaignProducts, setCampaignProducts] = useState<Product[]>([]);
+  const [campaignProducts, setCampaignProducts] useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
   const { promotions } = usePromotionsStore();
@@ -164,23 +164,29 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* Hero Banner Area */}
+      {/* Hero Banner Area - FIXED: Entire banner is now clickable */}
       <div className="container mx-auto px-4 py-4">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Main Banner */}
-          <div className="lg:col-span-3 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg overflow-hidden relative h-64 lg:h-80">
-            <div className="absolute inset-0 bg-black/20" />
-            <div className="relative z-10 p-8 text-white">
-              <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-sm mb-4">Up to 40% Off</span>
-              <h2 className="text-3xl lg:text-4xl font-bold mb-2">Medical Equipment Sale</h2>
-              <p className="text-lg mb-4">Premium quality healthcare supplies</p>
-              <Link href="/products">
-                <button className="bg-white text-blue-600 px-6 py-2 rounded-md font-semibold hover:shadow-lg transition">
+          {/* Main Banner - FULLY CLICKABLE */}
+          <Link href="/products" className="lg:col-span-3 block">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg overflow-hidden relative h-64 lg:h-80 cursor-pointer group">
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-300" />
+              <div className="relative z-10 p-8 text-white">
+                <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-sm mb-4 group-hover:scale-105 transition-transform duration-300">
+                  Up to 40% Off
+                </span>
+                <h2 className="text-3xl lg:text-4xl font-bold mb-2 group-hover:translate-x-1 transition-transform duration-300">
+                  Medical Equipment Sale
+                </h2>
+                <p className="text-lg mb-4 group-hover:translate-x-1 transition-transform duration-300">
+                  Premium quality healthcare supplies
+                </p>
+                <button className="bg-white text-blue-600 px-6 py-2 rounded-md font-semibold hover:shadow-lg transition-all duration-300 cursor-pointer group-hover:scale-105">
                   Shop Now →
                 </button>
-              </Link>
+              </div>
             </div>
-          </div>
+          </Link>
 
           {/* Side Promos */}
           <div className="grid grid-cols-2 gap-4">
@@ -202,22 +208,22 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Animated Ads Carousel - NEW */}
+      {/* Animated Ads Carousel */}
       <div className="container mx-auto px-4">
         <AnimatedAds />
       </div>
 
-      {/* Animated Flyer Cards - NEW */}
+      {/* Animated Flyer Cards */}
       <div className="container mx-auto px-4">
         <AnimatedFlyerCards />
       </div>
 
-      {/* Animated Countdown Banner - NEW */}
+      {/* Animated Countdown Banner */}
       <div className="container mx-auto px-4">
         <AnimatedCountdownBanner />
       </div>
 
-      {/* Flash Sales Section - FIXED grid for mobile */}
+      {/* Flash Sales Section */}
       <section className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="bg-red-500 text-white px-6 py-3 flex items-center justify-between">
@@ -244,7 +250,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Medical Equipment Section - FIXED grid for mobile */}
+      {/* Featured Medical Equipment Section */}
       <section className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="px-6 py-3 border-b flex items-center justify-between">
@@ -266,7 +272,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Diagnostic & Lab Equipment Section - FIXED grid for mobile */}
+      {/* Diagnostic & Lab Equipment Section */}
       <section className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="px-6 py-3 border-b flex items-center justify-between">
@@ -288,7 +294,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Special Offer Banner - ONLY SHOWS WHEN THERE ARE ACTIVE CAMPAIGNS */}
+      {/* Special Offer Banner */}
       {campaignProducts.length > 0 ? (
         <section className="container mx-auto px-4 py-8">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg overflow-hidden">
@@ -345,7 +351,6 @@ export default function Home() {
           </div>
         </section>
       ) : (
-        /* Empty State - No Campaigns Active */
         <section className="container mx-auto px-4 py-8">
           <div className="bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg overflow-hidden">
             <div className="px-6 py-12 text-center">

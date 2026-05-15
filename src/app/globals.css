@@ -56,6 +56,100 @@
   .input-primary {
     @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all;
   }
+  
+  /* Search Bar - Jumia Style */
+  .search-container {
+    @apply w-full max-w-3xl mx-auto;
+  }
+  
+  .search-input {
+    @apply w-full py-3 pl-12 pr-24 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50;
+  }
+  
+  .search-button {
+    @apply absolute right-1 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-6 py-1.5 rounded-full text-sm font-medium hover:bg-blue-700 transition;
+  }
+  
+  .search-icon {
+    @apply absolute left-4 top-1/2 -translate-y-1/2 text-gray-400;
+  }
+}
+
+/* ============================================
+   SEARCH BAR - JUMIA STYLE (Centered, Prominent)
+   ============================================ */
+
+.search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.search-wrapper input {
+  width: 100%;
+  padding: 12px 20px 12px 45px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  font-size: 14px;
+  background-color: #f9fafb;
+  transition: all 0.2s ease;
+}
+
+.search-wrapper input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  background-color: white;
+}
+
+.search-wrapper .search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+}
+
+.search-wrapper button {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.search-wrapper button:hover {
+  background-color: #2563eb;
+}
+
+/* Mobile search bar adjustments */
+@media (max-width: 640px) {
+  .search-wrapper {
+    max-width: 100%;
+  }
+  
+  .search-wrapper input {
+    padding: 10px 12px 10px 38px;
+    font-size: 13px;
+  }
+  
+  .search-wrapper .search-icon {
+    left: 12px;
+  }
+  
+  .search-wrapper button {
+    padding: 4px 12px;
+    font-size: 12px;
+  }
 }
 
 /* ============================================
@@ -729,6 +823,7 @@ header .relative {
 .relative .absolute {
   pointer-events: auto !important;
 }
+
 /* ============================================
    CRITICAL DROPDOWN FIX - FORCE ABOVE HERO
    ============================================ */
@@ -759,4 +854,51 @@ header .relative {
 .bg-white.rounded-lg.shadow-lg {
   z-index: 100001 !important;
   position: absolute !important;
+}
+
+/* ============================================
+   SEARCH BAR ENHANCEMENTS - JUMIA STYLE
+   ============================================ */
+
+/* Centered search container */
+.search-centered {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+/* Search input focus effect */
+.search-input-focus {
+  transition: all 0.3s ease;
+}
+
+.search-input-focus:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  border-color: #3b82f6;
+}
+
+/* Mobile search adjustments */
+@media (max-width: 768px) {
+  .search-wrapper input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Desktop search prominence */
+@media (min-width: 1024px) {
+  .search-wrapper {
+    max-width: 700px;
+  }
+  
+  .search-wrapper input {
+    padding: 14px 20px 14px 50px;
+    font-size: 16px;
+  }
+  
+  .search-wrapper button {
+    padding: 8px 24px;
+    font-size: 14px;
+  }
 }

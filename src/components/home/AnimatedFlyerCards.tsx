@@ -55,18 +55,18 @@ export default function AnimatedFlyerCards() {
           key={flyer.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.15, duration: 0.6 }}  // Slower entrance
-          whileHover={{ y: -5, transition: { duration: 0.3 } }}  // Smoother hover
+          transition={{ delay: index * 0.15, duration: 0.6 }}
+          whileHover={{ y: -5, transition: { duration: 0.3 } }}
           className="rounded-xl overflow-hidden cursor-pointer group relative"
         >
-          <Link href={flyer.link}>
+          <Link href={flyer.link} className="block h-full">
             <div className={`bg-gradient-to-r ${flyer.bgColor} p-6 text-white h-full relative overflow-hidden`}>
               {/* Animated background */}
               <motion.div
                 className="absolute inset-0 bg-white/10"
                 initial={{ x: '-100%' }}
                 whileHover={{ x: '100%' }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}  // Slower
+                transition={{ duration: 0.8, ease: "easeInOut" }}
               />
               
               {/* Badge */}
@@ -86,7 +86,6 @@ export default function AnimatedFlyerCards() {
                   <div>
                     <p className="text-2xl font-bold">{flyer.price}</p>
                   </div>
-                  {/* FIXED: Slower, smoother animation */}
                   <motion.div
                     animate={{ 
                       x: [0, 6, 0],
@@ -94,8 +93,8 @@ export default function AnimatedFlyerCards() {
                     }}
                     transition={{ 
                       repeat: Infinity, 
-                      duration: 3,  // Changed from 1.5 to 3 seconds (slower)
-                      ease: "easeInOut",  // Smooth easing
+                      duration: 3,
+                      ease: "easeInOut",
                       repeatType: "loop"
                     }}
                   >

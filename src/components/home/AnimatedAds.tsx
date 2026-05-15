@@ -1,4 +1,3 @@
-// src/components/home/AnimatedAds.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -240,11 +239,12 @@ export default function AnimatedAds() {
                   </motion.div>
                 )}
                 
-                <Link href={ads[currentAd].buttonLink}>
+                {/* Shop Now Button - FIXED (Clickable) */}
+                <Link href={ads[currentAd].buttonLink} className="inline-block">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all mt-2 inline-flex items-center gap-2"
+                    className="bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all mt-2 inline-flex items-center gap-2 cursor-pointer"
                   >
                     {ads[currentAd].buttonText}
                     <TrendingUp className="w-4 h-4" />
@@ -276,14 +276,14 @@ export default function AnimatedAds() {
       {/* Navigation Arrows */}
       <button
         onClick={prevAd}
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition z-20 backdrop-blur-sm"
+        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition z-20 backdrop-blur-sm cursor-pointer"
       >
         <ChevronLeft className="w-6 h-6" />
       </button>
       
       <button
         onClick={nextAd}
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition z-20 backdrop-blur-sm"
+        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition z-20 backdrop-blur-sm cursor-pointer"
       >
         <ChevronRight className="w-6 h-6" />
       </button>
@@ -294,7 +294,7 @@ export default function AnimatedAds() {
           <button
             key={index}
             onClick={() => { setDirection(index > currentAd ? 1 : -1); setCurrentAd(index); }}
-            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+            className={`w-2 h-2 rounded-full transition-all duration-300 cursor-pointer ${
               currentAd === index ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/80'
             }`}
           />

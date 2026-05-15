@@ -105,6 +105,7 @@ export default function CheckoutPage() {
       
       console.log('🔍 Backend URL:', backendUrl);
       console.log('📧 Customer Email:', formData.email);
+      console.log('📞 Customer Phone:', formData.phone);
       
       const response = await fetch(`${backendUrl}/api/orders`, {
         method: 'POST',
@@ -151,6 +152,7 @@ export default function CheckoutPage() {
   };
 
   // Show bank transfer display after order is created
+  // ✅ UPDATED: Pass phoneNumber and items to BankTransferDisplay
   if (paymentMethod === 'bank_transfer' && order) {
     return (
       <BankTransferDisplay
@@ -158,6 +160,12 @@ export default function CheckoutPage() {
         totalAmount={order.totalAmount || order.total}
         customerEmail={formData.email}
         customerName={formData.fullName}
+        phoneNumber={formData.phone}
+        items={items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        }))}
       />
     );
   }

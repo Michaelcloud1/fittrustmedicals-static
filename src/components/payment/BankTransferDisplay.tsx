@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useCartStore } from '@/stores/cartStore';
 
 interface BankTransferDisplayProps {
   orderId: number;
   totalAmount: number;
-  customerEmail: string;  // This is the customer's email from checkout
+  customerEmail: string;
   customerName: string;
+  phoneNumber?: string;
+  items?: Array<{ name: string; quantity: number; price: number }>;
 }
 
 interface BankDetails {
@@ -19,12 +22,16 @@ export default function BankTransferDisplay({
   orderId, 
   totalAmount, 
   customerEmail, 
-  customerName 
+  customerName,
+  phoneNumber,
+  items = []
 }: BankTransferDisplayProps) {
   const [copied, setCopied] = useState<string | null>(null);
   const [notified, setNotified] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const clearCart = useCartStore((state) => state.clearCart);
 
   const bankDetails: BankDetails = {
     bankName: 'Access Bank Nigeria',
@@ -45,8 +52,10 @@ export default function BankTransferDisplay({
     console.log('Sending notification with:', {
       orderId: `FT-${orderId}`,
       customerName,
-      customerEmail,  // Verify this has the correct email
+      customerEmail,
+      phoneNumber,
       totalAmount,
+      items,
     });
 
     try {
@@ -56,20 +65,27 @@ export default function BankTransferDisplay({
         body: JSON.stringify({
           orderId: `FT-${orderId}`,
           customerName,
-          customerEmail,  // This should be the customer's email from checkout
+          customerEmail,
+          phoneNumber,
           totalAmount,
+          items: items.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+          })),
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setNotified(true);
-        
-        // Clear cart
+        // ✅ Clear cart properly
+        clearCart();
         localStorage.removeItem('cart');
         localStorage.removeItem('cartItems');
         window.dispatchEvent(new Event('cartUpdated'));
+        
+        setNotified(true);
         
         // Redirect to home after 3 seconds
         setTimeout(() => {
@@ -86,7 +102,7 @@ export default function BankTransferDisplay({
     }
   };
 
-  // Thank you page after notification
+  // Thank you page
   if (notified) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -121,7 +137,6 @@ export default function BankTransferDisplay({
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-md mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Header */}
           <div className="bg-green-600 px-6 py-4 text-center">
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3">
               <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,13 +148,11 @@ export default function BankTransferDisplay({
           </div>
 
           <div className="p-6 space-y-4">
-            {/* Amount */}
             <div className="bg-gray-50 p-4 rounded-lg text-center">
               <p className="text-sm text-gray-500 mb-1">Order Amount</p>
               <p className="text-3xl font-bold text-gray-900">₦{totalAmount.toLocaleString()}</p>
             </div>
 
-            {/* Bank Details */}
             <div className="border border-gray-200 rounded-lg p-4 space-y-3">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Bank</p>
@@ -175,7 +188,6 @@ export default function BankTransferDisplay({
               </div>
             </div>
 
-            {/* Instructions */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm font-semibold text-blue-800 mb-2">📝 Instructions:</p>
               <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">

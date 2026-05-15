@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/Header';
 import { BackendStatus } from '@/components/BackendStatus';
 import { Footer } from '@/components/layout/Footer';
 import ClientWrapper from '@/components/layout/ClientWrapper';
+import { WhatsAppChat } from '@/components/chat/WhatsAppChat';
 
 export const metadata: Metadata = {
   title: 'Fittrustmedicals - Quality Medical Equipment & Supplies',
@@ -23,6 +24,8 @@ export default function RootLayout({
         <main className="min-h-screen">{children}</main>
         <Footer />
         <ClientWrapper />
+        {/* WhatsApp Chat Button */}
+        <WhatsAppChat />
       </body>
     </html>
   );

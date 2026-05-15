@@ -24,7 +24,7 @@ export default function RootLayout({
         <main className="min-h-screen">{children}</main>
         <Footer />
         <ClientWrapper />
-        {/* WhatsApp Chat Button */}
+        {/* WhatsApp Chat Button - Replaces AI Chat */}
         <WhatsAppChat />
       </body>
     </html>

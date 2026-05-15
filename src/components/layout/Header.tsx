@@ -11,7 +11,6 @@ import {
   User,
   Search,
   LogOut,
-  Heart,
   Menu,
   X,
   ChevronDown
@@ -54,16 +53,13 @@ export function Header() {
   const cartItemCount = isClient ? calculateCartCount(items) : 0;
 
   const allCategories = [
-    { name: 'Diagnostic Equipment', href: '/products?category=diagnostic' },
-    { name: 'Surgical Supplies', href: '/products?category=surgical' },
-    { name: 'Patient Monitoring', href: '/products?category=monitoring' },
-    { name: 'PPE & Safety', href: '/products?category=ppe' },
+    { name: 'Diagnostic Tools', href: '/products?category=diagnostic' },
+    { name: 'PPE Supplies', href: '/products?category=ppe' },
+    { name: 'Surgical Equipment', href: '/products?category=surgical' },
     { name: 'First Aid', href: '/products?category=first-aid' },
     { name: 'Lab Equipment', href: '/products?category=lab' },
-    { name: 'Mobility Aids', href: '/products?category=mobility' },
     { name: 'Hospital Furniture', href: '/products?category=furniture' },
     { name: 'Pharmaceuticals', href: '/products?category=pharma' },
-    { name: 'Dental Equipment', href: '/products?category=dental' },
   ];
 
   const handleLogout = async () => {
@@ -198,33 +194,9 @@ export function Header() {
         </div>
       </div>
 
-      {/* SIMPLE NAVIGATION BAR - No Dropdowns */}
-      <div className="hidden md:block border-t border-gray-100 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center gap-8 py-3">
-            <Link href="/products" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
-              All Products
-            </Link>
-            <Link href="/products?category=diagnostic" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
-              Diagnostic Tools
-            </Link>
-            <Link href="/products?category=ppe" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
-              PPE Supplies
-            </Link>
-            <Link href="/sale" className="text-red-600 hover:text-red-700 text-sm font-medium">
-              🔥 Hot Deals
-            </Link>
-            <Link href="/contact" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
-              Contact Us
-            </Link>
-            <Link href="/health-blog" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
-              Health Blog
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* NO NAVIGATION BAR - COMPLETELY REMOVED */}
 
-      {/* MOBILE SIDEBAR MENU - Fixed for mobile */}
+      {/* MOBILE SIDEBAR MENU */}
       {mobileMenuOpen && (
         <>
           <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setMobileMenuOpen(false)} />
@@ -261,13 +233,13 @@ export function Header() {
                 </div>
               )}
 
-              {/* Categories with dropdown toggle for mobile */}
+              {/* Categories dropdown for mobile */}
               <div>
                 <button
                   onClick={() => setMobileCategoriesOpen(!mobileCategoriesOpen)}
                   className="flex items-center justify-between w-full py-2 text-gray-800 font-semibold"
                 >
-                  Categories
+                  Shop by Category
                   <ChevronDown size={16} className={`transition-transform ${mobileCategoriesOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {mobileCategoriesOpen && (
@@ -297,9 +269,6 @@ export function Header() {
                 </Link>
                 <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
                   Contact Us
-                </Link>
-                <Link href="/health-blog" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  Health Blog
                 </Link>
               </div>
             </div>

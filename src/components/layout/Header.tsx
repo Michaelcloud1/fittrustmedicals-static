@@ -12,9 +12,9 @@ import {
   Search,
   LogOut,
   Heart,
-  ChevronDown,
   Menu,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 
 // Helper function to calculate cart item count
@@ -29,12 +29,9 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
-  const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
-  const [shopDropdownOpen, setShopDropdownOpen] = useState(false);
+  const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
 
   const accountRef = useRef<HTMLDivElement>(null);
-  const categoriesRef = useRef<HTMLDivElement>(null);
-  const shopRef = useRef<HTMLDivElement>(null);
 
   const { customer, isAuthenticated, logout } = useAuthStore();
   const { items } = useCartStore();
@@ -43,17 +40,11 @@ export function Header() {
     setIsClient(true);
   }, []);
 
-  // Close dropdowns when clicking outside
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
         setAccountDropdownOpen(false);
-      }
-      if (categoriesRef.current && !categoriesRef.current.contains(event.target as Node)) {
-        setCategoriesDropdownOpen(false);
-      }
-      if (shopRef.current && !shopRef.current.contains(event.target as Node)) {
-        setShopDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -73,14 +64,6 @@ export function Header() {
     { name: 'Hospital Furniture', href: '/products?category=furniture' },
     { name: 'Pharmaceuticals', href: '/products?category=pharma' },
     { name: 'Dental Equipment', href: '/products?category=dental' },
-  ];
-
-  const shopLinks = [
-    { name: 'All Products', href: '/products' },
-    { name: 'Trending Now', href: '/products?sort=trending' },
-    { name: 'Best Sellers', href: '/products?sort=bestsellers' },
-    { name: 'New Arrivals', href: '/products?sort=new' },
-    { name: 'On Sale', href: '/products?sort=sale' },
   ];
 
   const handleLogout = async () => {
@@ -126,7 +109,7 @@ export function Header() {
               </div>
             </Link>
 
-            {/* Icons - Cart & User (Moved to right side) */}
+            {/* Icons - Cart & User */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* User/Login Dropdown */}
               <div className="relative" ref={accountRef}>
@@ -194,7 +177,7 @@ export function Header() {
         </div>
       </div>
 
-      {/* SEARCH BAR - MOVED DOWN HERE (Only change) */}
+      {/* SEARCH BAR - Centered Below Logo */}
       <div className="bg-white pb-4">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
@@ -215,62 +198,18 @@ export function Header() {
         </div>
       </div>
 
-      {/* Navigation Bar - Desktop Dropdowns */}
+      {/* SIMPLE NAVIGATION BAR - No Dropdowns */}
       <div className="hidden md:block border-t border-gray-100 bg-white">
         <div className="container mx-auto px-4">
-          <div className="flex items-center gap-8 py-3">
-            {/* Categories Dropdown */}
-            <div className="relative" ref={categoriesRef}>
-              <button
-                onClick={() => setCategoriesDropdownOpen(!categoriesDropdownOpen)}
-                className="flex items-center gap-1 text-gray-700 hover:text-blue-600 text-sm font-medium"
-              >
-                Categories
-                <ChevronDown size={14} className={`transition-transform ${categoriesDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {categoriesDropdownOpen && (
-                <div className="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50 border">
-                  {allCategories.map((cat) => (
-                    <Link
-                      key={cat.name}
-                      href={cat.href}
-                      onClick={() => setCategoriesDropdownOpen(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      {cat.name}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Shop Dropdown */}
-            <div className="relative" ref={shopRef}>
-              <button
-                onClick={() => setShopDropdownOpen(!shopDropdownOpen)}
-                className="flex items-center gap-1 text-gray-700 hover:text-blue-600 text-sm font-medium"
-              >
-                Shop
-                <ChevronDown size={14} className={`transition-transform ${shopDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {shopDropdownOpen && (
-                <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                  {shopLinks.map((link) => (
-                    <Link
-                      key={link.name}
-                      href={link.href}
-                      onClick={() => setShopDropdownOpen(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      {link.name}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-
+          <div className="flex items-center justify-center gap-8 py-3">
             <Link href="/products" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
               All Products
+            </Link>
+            <Link href="/products?category=diagnostic" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
+              Diagnostic Tools
+            </Link>
+            <Link href="/products?category=ppe" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
+              PPE Supplies
             </Link>
             <Link href="/sale" className="text-red-600 hover:text-red-700 text-sm font-medium">
               🔥 Hot Deals
@@ -285,7 +224,7 @@ export function Header() {
         </div>
       </div>
 
-      {/* MOBILE SIDEBAR MENU */}
+      {/* MOBILE SIDEBAR MENU - Fixed for mobile */}
       {mobileMenuOpen && (
         <>
           <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setMobileMenuOpen(false)} />
@@ -322,38 +261,29 @@ export function Header() {
                 </div>
               )}
 
-              {/* Categories in Mobile Menu */}
+              {/* Categories with dropdown toggle for mobile */}
               <div>
-                <h3 className="font-semibold text-gray-800 mb-2 text-sm">Categories</h3>
-                <div className="space-y-1">
-                  {allCategories.map((cat) => (
-                    <Link
-                      key={cat.name}
-                      href={cat.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg"
-                    >
-                      {cat.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Shop Links in Mobile Menu */}
-              <div className="pt-3 border-t">
-                <h3 className="font-semibold text-gray-800 mb-2 text-sm">Shop</h3>
-                <div className="space-y-1">
-                  {shopLinks.map((link) => (
-                    <Link
-                      key={link.name}
-                      href={link.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg"
-                    >
-                      {link.name}
-                    </Link>
-                  ))}
-                </div>
+                <button
+                  onClick={() => setMobileCategoriesOpen(!mobileCategoriesOpen)}
+                  className="flex items-center justify-between w-full py-2 text-gray-800 font-semibold"
+                >
+                  Categories
+                  <ChevronDown size={16} className={`transition-transform ${mobileCategoriesOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {mobileCategoriesOpen && (
+                  <div className="mt-2 space-y-1 pl-4 border-l-2 border-blue-200">
+                    {allCategories.map((cat) => (
+                      <Link
+                        key={cat.name}
+                        href={cat.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg"
+                      >
+                        {cat.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Quick Links */}

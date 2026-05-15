@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 interface BankTransferDisplayProps {
   orderId: number;
   totalAmount: number;
-  customerEmail: string;
+  customerEmail: string;  // This is the customer's email from checkout
   customerName: string;
 }
 
@@ -24,6 +24,7 @@ export default function BankTransferDisplay({
   const [copied, setCopied] = useState<string | null>(null);
   const [notified, setNotified] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const bankDetails: BankDetails = {
     bankName: 'Access Bank Nigeria',
@@ -39,49 +40,53 @@ export default function BankTransferDisplay({
 
   const handleIHavePaid = async () => {
     setLoading(true);
+    setError(null);
+    
+    console.log('Sending notification with:', {
+      orderId: `FT-${orderId}`,
+      customerName,
+      customerEmail,  // Verify this has the correct email
+      totalAmount,
+    });
+
     try {
-      // Send notification to admin with customer details
       const response = await fetch('/api/notify-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: `FT-${orderId}`,
           customerName,
-          customerEmail,
+          customerEmail,  // This should be the customer's email from checkout
           totalAmount,
         }),
       });
 
-      if (response.ok) {
-        // Clear the cart
-        const cartStore = useCartStore.getState();
-        cartStore.clearCart();
-        
-        // Also clear localStorage
-        localStorage.removeItem('cart');
-        localStorage.removeItem('cartItems');
-        
-        // Dispatch event to update cart UI
-        window.dispatchEvent(new Event('cartUpdated'));
-        
+      const data = await response.json();
+
+      if (data.success) {
         setNotified(true);
         
-        // Redirect to home page after 3 seconds
+        // Clear cart
+        localStorage.removeItem('cart');
+        localStorage.removeItem('cartItems');
+        window.dispatchEvent(new Event('cartUpdated'));
+        
+        // Redirect to home after 3 seconds
         setTimeout(() => {
           window.location.href = '/';
         }, 3000);
       } else {
-        alert('Failed to notify admin. Please contact support.');
+        setError(data.error || 'Failed to send notification');
         setLoading(false);
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Something went wrong. Please try again.');
+      setError('Something went wrong. Please try again.');
       setLoading(false);
     }
   };
 
-  // Show thank you page after notification
+  // Thank you page after notification
   if (notified) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -91,19 +96,19 @@ export default function BankTransferDisplay({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank You for Your Payment!</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Payment Notification Sent!</h2>
           <p className="text-gray-600 mb-4">
-            Dear {customerName}, your payment notification has been sent.
+            Dear {customerName}, we have sent a payment notification to our admin.
           </p>
-          <div className="bg-gray-50 p-4 rounded-lg mb-4 text-left">
+          <p className="text-sm text-gray-500">
+            A confirmation email has been sent to <strong>{customerEmail}</strong>
+          </p>
+          <div className="bg-gray-50 p-4 rounded-lg mb-4 text-left mt-4">
             <p className="font-semibold mb-2">Order Summary:</p>
             <p className="text-sm">Order ID: <strong>FT-{orderId}</strong></p>
             <p className="text-sm">Amount: <strong>₦{totalAmount.toLocaleString()}</strong></p>
             <p className="text-sm">Status: <span className="text-yellow-600">Pending Verification</span></p>
           </div>
-          <p className="text-sm text-gray-500">
-            The admin will contact you shortly for delivery confirmation.
-          </p>
           <p className="text-xs text-gray-400 mt-4">
             Redirecting to home page...
           </p>
@@ -127,7 +132,6 @@ export default function BankTransferDisplay({
             <p className="text-green-100 mt-1">Pay directly to our bank account</p>
           </div>
 
-          {/* Body */}
           <div className="p-6 space-y-4">
             {/* Amount */}
             <div className="bg-gray-50 p-4 rounded-lg text-center">
@@ -178,16 +182,19 @@ export default function BankTransferDisplay({
                 <li>Use your <strong>Order ID: FT-{orderId}</strong> as transaction reference</li>
                 <li>Send the exact amount of <strong>₦{totalAmount.toLocaleString()}</strong></li>
                 <li>After payment, click <strong>"I Have Made the Payment"</strong> below</li>
-                <li>The admin will contact you for delivery confirmation</li>
               </ul>
             </div>
 
-            {/* Order Info */}
             <div className="text-center text-sm text-gray-500">
               Order ID: <strong className="font-mono">FT-{orderId}</strong>
             </div>
 
-            {/* I Have Paid Button */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
             <button
               onClick={handleIHavePaid}
               disabled={loading}
@@ -196,14 +203,12 @@ export default function BankTransferDisplay({
               {loading ? 'Sending Notification...' : '✓ I Have Made the Payment'}
             </button>
 
-            {/* Support Contact */}
             <div className="bg-gray-50 rounded-lg p-3 text-center text-xs text-gray-500">
               <p>Need help? Contact us: <strong>fittrustsurgical56@gmail.com</strong></p>
             </div>
           </div>
         </div>
 
-        {/* Toast Message */}
         {copied && (
           <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg">
             Copied to clipboard!

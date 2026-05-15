@@ -100,10 +100,11 @@ export default function CheckoutPage() {
       const firstName = nameParts[0] || 'Customer';
       const lastName = nameParts.slice(1).join(' ') || 'User';
 
-      // FIXED: Use NEXT_PUBLIC_BACKEND_URL as primary (not BACKEND_API_URL)
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3001';
+      // Use Render backend URL
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
       
-      console.log('🔍 Backend URL:', backendUrl); // Debug log
+      console.log('🔍 Backend URL:', backendUrl);
+      console.log('📧 Customer Email:', formData.email);
       
       const response = await fetch(`${backendUrl}/api/orders`, {
         method: 'POST',
@@ -135,6 +136,7 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (data.success) {
+        console.log('✅ Order created:', data.order);
         setOrder(data.order);
         setPaymentMethod('bank_transfer');
       } else {

@@ -67,7 +67,6 @@ export default function CustomersPage() {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
-  // Fetch customers from backend
   const fetchCustomers = async () => {
     try {
       setLoading(true);
@@ -125,7 +124,6 @@ export default function CustomersPage() {
     fetchCustomers();
   };
 
-  // Update customer status
   const updateCustomerStatus = async (customerId: string, newStatus: string) => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/users/${customerId}/status`, {
@@ -145,7 +143,6 @@ export default function CustomersPage() {
     }
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -156,7 +153,6 @@ export default function CustomersPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Toggle dropdown
   const toggleDropdown = (customerId: string) => {
     setDropdownOpen(dropdownOpen === customerId ? null : customerId);
   };
@@ -281,7 +277,6 @@ export default function CustomersPage() {
       animate="visible"
       className="space-y-6"
     >
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
@@ -309,7 +304,6 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4">
           <div className="flex items-center justify-between">
@@ -357,7 +351,6 @@ export default function CustomersPage() {
         </Card>
       </motion.div>
 
-      {/* Search and Filters */}
       <motion.div variants={itemVariants}>
         <Card className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -387,7 +380,6 @@ export default function CustomersPage() {
         </Card>
       </motion.div>
 
-      {/* Customers Table */}
       <motion.div variants={itemVariants}>
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
@@ -426,7 +418,7 @@ export default function CustomersPage() {
                             <p className="text-xs text-gray-500">ID: {customer.id.slice(0, 8)}...</p>
                           </div>
                         </div>
-                      </td
+                      </td>
                       <td className="p-4">
                         <div className="space-y-1">
                           <div className="flex items-center gap-1 text-sm text-gray-600">
@@ -438,32 +430,32 @@ export default function CustomersPage() {
                             <span>{customer.phoneNumber}</span>
                           </div>
                         </div>
-                      </td
+                      </td>
                       <td className="p-4">
                         <span className="text-sm font-medium text-gray-900">{customer.totalOrders}</span>
-                      </td
+                      </td>
                       <td className="p-4">
                         <span className="text-sm font-semibold text-gray-900">
                           {formatNaira(customer.totalSpent)}
                         </span>
-                      </td
+                      </td>
                       <td className="p-4">
                         <div className="flex items-center gap-1 text-sm text-gray-600">
                           <Calendar className="w-3 h-3" />
                           <span>{formatDate(customer.createdAt)}</span>
                         </div>
-                      </td
+                      </td>
                       <td className="p-4">
                         <span className="text-sm text-gray-600">
                           {formatDate(customer.lastOrderAt)}
                         </span>
-                      </td
+                      </td>
                       <td className="p-4">
                         <Badge 
                           label={getStatusLabel(customer.status)} 
                           variant={getStatusColor(customer.status) as any}
                         />
-                      </td
+                      </td>
                       <td className="p-4 text-right">
                         <div className="relative" ref={dropdownOpen === customer.id ? dropdownRef : null}>
                           <button
@@ -473,8 +465,6 @@ export default function CustomersPage() {
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
-                          
-                          {/* Dropdown Menu */}
                           {dropdownOpen === customer.id && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 overflow-hidden">
                               <Link href={`/admin/customers/${customer.id}`}>
@@ -513,7 +503,7 @@ export default function CustomersPage() {
                             </div>
                           )}
                         </div>
-                      </td
+                      </td>
                     </tr>
                   ))
                 )}

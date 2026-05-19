@@ -80,7 +80,7 @@ export default function AddProductPage() {
 
       // Save the Cloudinary image URL
       setImageUrl(data.secure_url);
-      setSuccess('✅ Image uploaded to Cloudinary successfully!');
+      setSuccess('Image uploaded successfully!');
       setTimeout(() => setSuccess(''), 3000);
       
     } catch (err) {
@@ -200,7 +200,7 @@ export default function AddProductPage() {
       
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
         
-        {/* ===== IMAGE UPLOAD SECTION (Cloudinary) ===== */}
+        {/* ===== IMAGE UPLOAD SECTION ===== */}
         <div className="space-y-2 border-b pb-4">
           <label className="block text-sm font-medium text-gray-700">
             Product Image <span className="text-red-500">*</span>
@@ -229,7 +229,7 @@ export default function AddProductPage() {
                   ) : (
                     <Upload className="w-4 h-4" />
                   )}
-                  {uploadingImage ? 'Uploading to Cloudinary...' : 'Choose Image'}
+                  {uploadingImage ? 'Uploading...' : 'Choose Image'}
                 </div>
                 <input
                   type="file"
@@ -239,21 +239,13 @@ export default function AddProductPage() {
                   className="hidden"
                 />
               </label>
-              <p className="text-xs text-gray-500 mt-2">
-                Upload to Cloudinary Cloud Storage (Free Tier)<br />
-                Supports: JPG, PNG, GIF, WEBP. Max 5MB
-              </p>
-              <p className="text-xs text-green-600 mt-1">
-                📸 Free 25GB storage + 25GB monthly bandwidth
-              </p>
             </div>
           </div>
           
-          {/* Show the Cloudinary URL */}
+          {/* Show the uploaded image URL */}
           {imageUrl && (
             <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
-              <p className="text-xs text-green-700 mb-1">✅ Image uploaded to Cloudinary:</p>
-              <p className="text-xs text-green-600 break-all">{imageUrl}</p>
+              <p className="text-xs text-green-700 mb-1">✅ Image uploaded successfully</p>
             </div>
           )}
         </div>

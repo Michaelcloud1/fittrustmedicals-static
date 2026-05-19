@@ -6,11 +6,8 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'fittrust-medicals-images.s3.eu-north-1.amazonaws.com',
+        hostname: 'res.cloudinary.com',
+        pathname: `/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dijqk2arj'}/**`,
       },
       {
         protocol: 'https',
@@ -18,6 +15,7 @@ const nextConfig = {
       },
     ],
     unoptimized: false,
+    formats: ['image/avif', 'image/webp'],
   },
   
   // Allow production builds to complete even with type errors
@@ -25,11 +23,10 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   
-  // REMOVED: eslint configuration moved to .eslintrc.json
-  
   env: {
     NEXT_PUBLIC_APP_NAME: 'Fittrust Medicals',
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'https://fittrustmedicals.vercel.app',
+    NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dijqk2arj',
   },
   
   async rewrites() {

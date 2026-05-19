@@ -1,4 +1,4 @@
-// src/app/product/[id]/page.tsx - WITH DEBUGGING
+// src/app/product/[id]/page.tsx
 
 'use client';
 
@@ -19,10 +19,10 @@ interface Product {
   category: string;
   description: string;
   image: string;
-  stock: number;
+  stockQuantity: number;  // ✅ FIXED: Changed from 'stock' to 'stockQuantity'
   rating: number;
   reviewCount: number;
-  status: string;
+  isActive: boolean;       // ✅ FIXED: Changed from 'status' to 'isActive'
 }
 
 export default function ProductDetailPage() {
@@ -70,7 +70,6 @@ export default function ProductDetailPage() {
         
         console.log(`📋 API returned ${products.length} products`);
         console.log('📋 API product IDs:', products.map((p: Product) => p.id));
-        console.log('📋 First 3 products:', products.slice(0, 3));
         
         // Find product by exact ID match
         const foundProduct = products.find((p: Product) => p.id === productId);
@@ -79,19 +78,8 @@ export default function ProductDetailPage() {
           console.log('✅ Found product in API!', foundProduct);
           setProduct(foundProduct);
         } else {
-          console.log('❌ Product not found. Searching for partial match...');
-          // Try partial match (case insensitive)
-          const partialMatch = products.find((p: Product) => 
-            p.id.toLowerCase().includes(productId.toLowerCase()) || 
-            productId.toLowerCase().includes(p.id.toLowerCase())
-          );
-          
-          if (partialMatch) {
-            console.log('⚠️ Found partial match:', partialMatch);
-            setProduct(partialMatch);
-          } else {
-            setError(`Product with ID "${productId}" was not found in our catalog.`);
-          }
+          console.log('❌ Product not found');
+          setError(`Product with ID "${productId}" was not found in our catalog.`);
         }
       } catch (err) {
         console.error('❌ Error fetching product:', err);
@@ -138,7 +126,7 @@ export default function ProductDetailPage() {
       quantity: quantity,
       image: product.image || '/placeholder.svg',
       category: product.category,
-      maxStock: product.stock,
+      maxStock: product.stockQuantity,  // ✅ FIXED: Use stockQuantity
     });
     
     setTimeout(() => {
@@ -190,6 +178,12 @@ export default function ProductDetailPage() {
     }
     return stars;
   };
+
+  // ✅ Determine if product is in stock
+  const isInStock = product?.stockQuantity ? product.stockQuantity > 0 : false;
+  const stockDisplay = isInStock 
+    ? `${product?.stockQuantity} in stock` 
+    : 'Out of stock';
 
   if (loading) {
     return (
@@ -244,12 +238,13 @@ export default function ProductDetailPage() {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          {/* Product Image */}
           <div>
             <div className="aspect-square bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
               <img 
                 src={product.image || '/placeholder.svg'} 
                 alt={product.name}
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                className="w-full h-full object-contain p-4 hover:scale-105 transition-transform duration-300"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = '/placeholder.svg';
                 }}
@@ -257,10 +252,11 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
+          {/* Product Info */}
           <div>
             <Badge label={product.category} variant="primary" className="mb-4" />
             <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">{product.name}</h1>
-            <p className="text-sm text-gray-500 mb-4">SKU: {product.id}</p>
+            <p className="text-sm text-gray-500 mb-4">SKU: {product.id.slice(0, 12)}</p>
             
             <div className="flex items-center gap-3 mb-6">
               <div className="flex items-center gap-1">{renderStars()}</div>
@@ -269,6 +265,7 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
+            {/* Price Section */}
             <div className="mb-6">
               <div className="flex items-center gap-3">
                 <p className="text-4xl font-bold text-blue-600">{formatNaira(product.price)}</p>
@@ -277,18 +274,22 @@ export default function ProductDetailPage() {
               {product.originalPrice && product.originalPrice > product.price && (
                 <p className="text-lg text-gray-400 line-through mt-1">{formatNaira(product.originalPrice)}</p>
               )}
-              <p className="text-sm text-gray-600 mt-2">
-                Stock: <span className={product.stock > 10 ? 'text-green-600 font-semibold' : 'text-orange-600 font-semibold'}>
-                  {product.stock > 0 ? `${product.stock} available` : 'Out of stock'}
+              
+              {/* ✅ STOCK DISPLAY - FIXED */}
+              <p className="text-sm mt-2">
+                Stock: <span className={isInStock ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                  {stockDisplay}
                 </span>
               </p>
             </div>
 
+            {/* Description */}
             <div className="mb-6">
               <h3 className="font-bold text-lg mb-2">Description</h3>
               <p className="text-gray-600 whitespace-pre-line leading-relaxed">{product.description}</p>
             </div>
 
+            {/* Product Details Table */}
             <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
               <h3 className="font-bold mb-3 text-gray-800">Product Details</h3>
               <div className="space-y-2 text-sm">
@@ -298,50 +299,88 @@ export default function ProductDetailPage() {
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-gray-600">Status:</span>
-                  <span className="font-medium capitalize text-green-600">{product.status}</span>
+                  <span className={`font-medium capitalize ${isInStock ? 'text-green-600' : 'text-red-600'}`}>
+                    {isInStock ? 'In Stock' : 'Out of Stock'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-gray-600">SKU:</span>
+                  <span className="font-mono text-gray-800">{product.id.slice(0, 12)}</span>
                 </div>
               </div>
             </div>
 
-            {product.stock > 0 && (
+            {/* Quantity Selector */}
+            {isInStock && (
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
                 <div className="flex items-center gap-3">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1} className="w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50">
+                  <button 
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))} 
+                    disabled={quantity <= 1} 
+                    className="w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+                  >
                     <Minus size={18} className="mx-auto" />
                   </button>
-                  <input type="number" value={quantity} onChange={(e) => setQuantity(Math.min(product.stock, Math.max(1, parseInt(e.target.value) || 1)))} className="w-20 text-center border border-gray-300 rounded-lg px-3 py-2" />
-                  <button onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} disabled={quantity >= product.stock} className="w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50">
+                  <input 
+                    type="number" 
+                    value={quantity} 
+                    onChange={(e) => setQuantity(Math.min(product.stockQuantity, Math.max(1, parseInt(e.target.value) || 1)))} 
+                    className="w-20 text-center border border-gray-300 rounded-lg px-3 py-2" 
+                  />
+                  <button 
+                    onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))} 
+                    disabled={quantity >= product.stockQuantity} 
+                    className="w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+                  >
                     <Plus size={18} className="mx-auto" />
                   </button>
-                  <span className="text-sm text-gray-500 ml-2">Max: {product.stock}</span>
+                  <span className="text-sm text-gray-500 ml-2">Max: {product.stockQuantity}</span>
                 </div>
               </div>
             )}
 
+            {/* Action Buttons */}
             <div className="flex gap-4 mb-6">
-              <Button size="lg" onClick={handleAddToCart} isLoading={adding} disabled={product.stock === 0} className="flex-1 bg-blue-600 hover:bg-blue-700">
+              <Button 
+                size="lg" 
+                onClick={handleAddToCart} 
+                isLoading={adding} 
+                disabled={!isInStock} 
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
                 <ShoppingCart size={20} className="mr-2" />
-                {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                {!isInStock ? 'Out of Stock' : 'Add to Cart'}
               </Button>
-              <button onClick={toggleWishlist} className={`w-12 h-12 border rounded-lg transition flex items-center justify-center ${isFavorite ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-red-500'}`}>
+              <button 
+                onClick={toggleWishlist} 
+                className={`w-12 h-12 border rounded-lg transition flex items-center justify-center ${isFavorite ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-red-500'}`}
+              >
                 <Heart size={20} className={isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'} />
               </button>
             </div>
 
+            {/* Shipping Info */}
             <div className="grid grid-cols-2 gap-4 pt-6 border-t">
               <div className="flex items-center gap-3">
                 <Truck className="text-blue-600" size={24} />
-                <div><p className="font-medium text-sm">Free Shipping</p><p className="text-xs text-gray-600">On orders over ₦50,000</p></div>
+                <div>
+                  <p className="font-medium text-sm">Free Shipping</p>
+                  <p className="text-xs text-gray-600">On orders over ₦50,000</p>
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <Shield className="text-blue-600" size={24} />
-                <div><p className="font-medium text-sm">Secure Payment</p><p className="text-xs text-gray-600">100% protected</p></div>
+                <div>
+                  <p className="font-medium text-sm">Secure Payment</p>
+                  <p className="text-xs text-gray-600">100% protected</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Reviews Section */}
         <div className="mt-16">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Customer Reviews</h2>
           <Card className="p-8 text-center">

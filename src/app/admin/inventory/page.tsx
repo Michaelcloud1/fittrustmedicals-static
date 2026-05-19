@@ -274,20 +274,20 @@ export default function InventoryPage() {
                           <p className="font-medium text-gray-900">{product.name}</p>
                           <p className="text-xs text-gray-500">ID: {product.id.slice(0, 8)}</p>
                         </div>
-                      </td
-                      <td className="px-6 py-4 text-sm text-gray-600 font-mono">{product.sku || 'N/A'}</td
-                      <td className="px-6 py-4 text-sm text-gray-600">{product.category}</td
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 font-mono">{product.sku || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{product.category}</td>
                       <td className="px-6 py-4">
                         <span className={`text-lg font-semibold ${product.stockQuantity === 0 ? 'text-red-600' : product.stockQuantity <= 10 ? 'text-yellow-600' : 'text-gray-900'}`}>
                           {product.stockQuantity}
                         </span>
                         <span className="text-sm text-gray-500 ml-1">units</span>
-                      </td
+                      </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${status.color}`}>
                           {status.label}
                         </span>
-                      </td
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
                           <button
@@ -313,8 +313,8 @@ export default function InventoryPage() {
                             </button>
                           </Link>
                         </div>
-                      </td
-                     </tr>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>

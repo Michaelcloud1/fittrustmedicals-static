@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { 
@@ -14,8 +14,8 @@ import {
   Ban,
   CheckCircle,
   Download,
-  Filter,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -62,6 +62,8 @@ export default function CustomersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
@@ -71,7 +73,6 @@ export default function CustomersPage() {
       setLoading(true);
       setError(null);
       
-      // Fetch all users from backend (customers are users with role CUSTOMER)
       const response = await fetch(`${BACKEND_URL}/api/users`);
       
       if (!response.ok) {
@@ -80,13 +81,10 @@ export default function CustomersPage() {
       
       const allUsers = await response.json();
       
-      // Filter only customers (exclude admins and staff if needed)
-      // and map to Customer interface
       const customersList: Customer[] = await Promise.all(
         (allUsers || [])
           .filter((user: any) => user.role === 'CUSTOMER')
           .map(async (user: any) => {
-            // Fetch user's orders to calculate total spent and orders count
             const ordersResponse = await fetch(`${BACKEND_URL}/api/orders?userId=${user.id}`);
             const orders = ordersResponse.ok ? await ordersResponse.json() : [];
             
@@ -125,6 +123,42 @@ export default function CustomersPage() {
   const handleRefresh = () => {
     setRefreshing(true);
     fetchCustomers();
+  };
+
+  // Update customer status
+  const updateCustomerStatus = async (customerId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/users/${customerId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      
+      if (response.ok) {
+        alert(`Customer ${newStatus === 'ACTIVE' ? 'activated' : 'blocked'} successfully`);
+        fetchCustomers();
+      } else {
+        alert('Failed to update customer status');
+      }
+    } catch (err) {
+      alert('Something went wrong');
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Toggle dropdown
+  const toggleDropdown = (customerId: string) => {
+    setDropdownOpen(dropdownOpen === customerId ? null : customerId);
   };
 
   useEffect(() => {
@@ -169,7 +203,7 @@ export default function CustomersPage() {
       case 'inactive':
         return 'Inactive';
       case 'banned':
-        return 'Banned';
+        return 'Blocked';
       default:
         return status;
     }
@@ -179,7 +213,6 @@ export default function CustomersPage() {
     return `${customer.firstName} ${customer.lastName}`.trim();
   };
 
-  // Filter customers based on search and status
   const filteredCustomers = customers.filter(customer => {
     const fullName = getFullName(customer).toLowerCase();
     const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
@@ -189,7 +222,6 @@ export default function CustomersPage() {
     return matchesSearch && matchesStatus;
   });
 
-  // Export to CSV
   const exportToCSV = () => {
     const headers = ['Customer Name', 'Email', 'Phone', 'Total Orders', 'Total Spent', 'Status', 'Joined Date', 'Last Order'];
     const csvData = filteredCustomers.map(customer => [
@@ -315,7 +347,7 @@ export default function CustomersPage() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 text-sm">Banned</p>
+              <p className="text-gray-500 text-sm">Blocked</p>
               <p className="text-2xl font-bold text-red-600">{stats.banned}</p>
             </div>
             <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
@@ -348,7 +380,7 @@ export default function CustomersPage() {
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
-                <option value="banned">Banned</option>
+                <option value="banned">Blocked</option>
               </select>
             </div>
           </div>
@@ -394,7 +426,7 @@ export default function CustomersPage() {
                             <p className="text-xs text-gray-500">ID: {customer.id.slice(0, 8)}...</p>
                           </div>
                         </div>
-                      </td>
+                      </td
                       <td className="p-4">
                         <div className="space-y-1">
                           <div className="flex items-center gap-1 text-sm text-gray-600">
@@ -406,44 +438,82 @@ export default function CustomersPage() {
                             <span>{customer.phoneNumber}</span>
                           </div>
                         </div>
-                      </td>
+                      </td
                       <td className="p-4">
                         <span className="text-sm font-medium text-gray-900">{customer.totalOrders}</span>
-                      </td>
+                      </td
                       <td className="p-4">
                         <span className="text-sm font-semibold text-gray-900">
                           {formatNaira(customer.totalSpent)}
                         </span>
-                      </td>
+                      </td
                       <td className="p-4">
                         <div className="flex items-center gap-1 text-sm text-gray-600">
                           <Calendar className="w-3 h-3" />
                           <span>{formatDate(customer.createdAt)}</span>
                         </div>
-                      </td>
+                      </td
                       <td className="p-4">
                         <span className="text-sm text-gray-600">
                           {formatDate(customer.lastOrderAt)}
                         </span>
-                      </td>
+                      </td
                       <td className="p-4">
                         <Badge 
                           label={getStatusLabel(customer.status)} 
                           variant={getStatusColor(customer.status) as any}
                         />
-                      </td>
+                      </td
                       <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/admin/customers/${customer.id}`}>
-                            <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors" title="View Details">
-                              <Eye className="w-4 h-4" />
-                            </button>
-                          </Link>
-                          <button className="p-1 text-gray-400 hover:text-red-600 transition-colors" title="More Options">
+                        <div className="relative" ref={dropdownOpen === customer.id ? dropdownRef : null}>
+                          <button
+                            onClick={() => toggleDropdown(customer.id)}
+                            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                            title="More Options"
+                          >
                             <MoreVertical className="w-4 h-4" />
                           </button>
+                          
+                          {/* Dropdown Menu */}
+                          {dropdownOpen === customer.id && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 overflow-hidden">
+                              <Link href={`/admin/customers/${customer.id}`}>
+                                <button
+                                  onClick={() => setDropdownOpen(null)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                >
+                                  <Eye className="w-3 h-3" />
+                                  View Details
+                                </button>
+                              </Link>
+                              <button
+                                onClick={() => {
+                                  const newStatus = customer.status === 'active' ? 'banned' : 'active';
+                                  updateCustomerStatus(customer.id, newStatus === 'active' ? 'ACTIVE' : 'BANNED');
+                                  setDropdownOpen(null);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${
+                                  customer.status === 'active' 
+                                    ? 'text-red-600 hover:bg-red-50' 
+                                    : 'text-green-600 hover:bg-green-50'
+                                }`}
+                              >
+                                {customer.status === 'active' ? (
+                                  <>
+                                    <Ban className="w-3 h-3" />
+                                    Block Customer
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="w-3 h-3" />
+                                    Unblock Customer
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      </td>
+                      </td
                     </tr>
                   ))
                 )}

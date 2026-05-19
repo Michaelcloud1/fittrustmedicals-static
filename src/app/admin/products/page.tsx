@@ -16,8 +16,8 @@ interface Product {
   category: string;
   description: string;
   image: string;
-  stock: number;
-  status: string;
+  stockQuantity: number;  // ✅ Fixed: use stockQuantity
+  isActive: boolean;      // ✅ Fixed: use isActive
   rating: number;
   reviewCount: number;
 }
@@ -93,7 +93,7 @@ export default function AdminProductsPage() {
     }
   };
 
-  // Open edit modal with product data
+  // Open edit modal
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setEditFormData({
@@ -103,13 +103,12 @@ export default function AdminProductsPage() {
       category: product.category,
       description: product.description || '',
       image: product.image || '',
-      stock: product.stock,
-      status: product.status || 'active'
+      stock: product.stockQuantity || 0,
+      status: product.isActive ? 'active' : 'inactive'
     });
     setShowEditModal(true);
   };
 
-  // Handle edit form input changes
   const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEditFormData(prev => ({
@@ -118,7 +117,6 @@ export default function AdminProductsPage() {
     }));
   };
 
-  // Submit edited product
   const handleUpdateProduct = async () => {
     if (!editingProduct) return;
     
@@ -205,16 +203,16 @@ export default function AdminProductsPage() {
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap"><div className="flex items-center"><div className="w-10 h-10 bg-gray-100 rounded-lg flex-shrink-0 mr-3 overflow-hidden"><img src={product.image || '/placeholder.svg'} alt={product.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} /></div><div className="font-medium text-gray-900">{product.name}</div></div></td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{product.category}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{formatNaira(product.price)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap"><span className={`text-sm font-medium ${product.stock < 20 ? 'text-orange-600' : 'text-gray-900'}`}>{product.stock}</span></td>
-                    <td className="px-6 py-4 whitespace-nowrap"><Badge label={product.status === 'active' ? 'Active' : 'Inactive'} variant={product.status === 'active' ? 'success' : 'warning'} /></td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{formatNaira(product.price)}</td
+                    <td className="px-6 py-4 whitespace-nowrap"><span className={`text-sm font-medium ${product.stockQuantity < 20 ? 'text-orange-600' : 'text-gray-900'}`}>{product.stockQuantity}</span></td
+                    <td className="px-6 py-4 whitespace-nowrap"><Badge label={product.isActive ? 'Active' : 'Inactive'} variant={product.isActive ? 'success' : 'warning'} /></td
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
                         <Link href={`/products/${product.id}`} target="_blank"><button className="text-gray-500 hover:text-blue-600 p-1" title="View Product"><Eye size={18} /></button></Link>
                         <button onClick={() => handleEdit(product)} className="text-blue-500 hover:text-blue-700 p-1" title="Edit Product"><Edit size={18} /></button>
                         <button onClick={() => handleDelete(product.id)} className="text-red-500 hover:text-red-700 p-1" title="Delete Product"><Trash2 size={18} /></button>
                       </div>
-                    </td>
+                    </td
                   </tr>
                 ))
               )}

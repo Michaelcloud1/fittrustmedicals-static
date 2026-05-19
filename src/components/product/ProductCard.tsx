@@ -16,8 +16,8 @@ interface Product {
   category: string;
   description: string;
   image: string;
-  stock: number;
-  status: string;
+  stockQuantity: number;  // ✅ Fixed field name
+  isActive: boolean;      // ✅ Fixed field name
   isPromotional?: boolean;
   discountPercentage?: number;
   featured?: boolean;
@@ -46,7 +46,7 @@ export function ProductCard({ product, showDiscount, onAddSuccess }: ProductCard
     e.preventDefault();
     e.stopPropagation();
     
-    if (product.stock <= 0) return;
+    if (product.stockQuantity <= 0) return;
     
     addItem({
       productId: product.id,
@@ -55,7 +55,7 @@ export function ProductCard({ product, showDiscount, onAddSuccess }: ProductCard
       quantity: 1,
       image: imageUrl,
       category: product.category,
-      maxStock: product.stock,
+      maxStock: product.stockQuantity,
     });
     
     onAddSuccess?.();
@@ -87,6 +87,9 @@ export function ProductCard({ product, showDiscount, onAddSuccess }: ProductCard
     }).format(price);
   };
 
+  // ✅ Only show product if it's active
+  if (!product.isActive) return null;
+
   return (
     <motion.div
       whileHover={{ y: -8 }}
@@ -94,7 +97,6 @@ export function ProductCard({ product, showDiscount, onAddSuccess }: ProductCard
       className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow"
     >
       <Link href={`/products/${product.id}`}>
-        {/* Image Container - Clean, only discount badge */}
         <div className="relative aspect-square w-full overflow-hidden bg-gray-100 product-image-container">
           <SafeImage
             src={product.image}
@@ -103,17 +105,24 @@ export function ProductCard({ product, showDiscount, onAddSuccess }: ProductCard
             fallback={getValidImageUrl(null, product.category)}
           />
           
-          {/* ONLY DISCOUNT BADGE - Category removed from image */}
+          {/* Discount Badge */}
           {product.isPromotional && showDiscount && product.discountPercentage && (
             <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full z-10">
               -{product.discountPercentage}%
             </span>
           )}
 
-          {/* Wishlist Button - HIDDEN ON MOBILE (heart emoji removed from covering images) */}
+          {/* In Stock / Out of Stock Badge */}
+          {product.stockQuantity === 0 && (
+            <span className="absolute top-2 right-2 bg-gray-800 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full z-10">
+              Out of Stock
+            </span>
+          )}
+
+          {/* Wishlist Button */}
           <button 
             onClick={handleWishlist}
-            className={`absolute top-2 right-2 p-1 sm:p-2 rounded-full transition-colors z-10 hidden md:block ${
+            className={`absolute top-2 right-2 p-1 sm:p-2 rounded-full transition-colors z-10 ${
               inWishlist 
                 ? 'bg-red-500 text-white' 
                 : 'bg-white/80 backdrop-blur-sm text-gray-600 hover:text-red-500'
@@ -122,19 +131,19 @@ export function ProductCard({ product, showDiscount, onAddSuccess }: ProductCard
             <Heart className={`w-3.5 h-3.5 sm:w-5 sm:h-5 ${inWishlist ? 'fill-current' : ''}`} />
           </button>
 
-          {/* Quick Add Button - Hidden on mobile */}
-          <button 
-            onClick={handleAddToCart}
-            disabled={product.stock === 0}
-            className="absolute bottom-2 right-2 bg-blue-600 text-white p-1.5 sm:p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed z-10 hidden sm:flex"
-          >
-            <ShoppingCart className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-          </button>
+          {/* Quick Add Button */}
+          {product.stockQuantity > 0 && (
+            <button 
+              onClick={handleAddToCart}
+              className="absolute bottom-2 right-2 bg-blue-600 text-white p-1.5 sm:p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all hover:bg-blue-700 z-10"
+            >
+              <ShoppingCart className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+            </button>
+          )}
         </div>
 
-        {/* Product Info - Category appears here (below image) */}
+        {/* Product Info */}
         <div className="p-2 sm:p-4">
-          {/* Category - Now below image, not covering it */}
           <span className="inline-block text-[10px] sm:text-xs font-medium text-blue-600 bg-blue-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full mb-1 sm:mb-2">
             {product.category}
           </span>
@@ -165,8 +174,8 @@ export function ProductCard({ product, showDiscount, onAddSuccess }: ProductCard
                 </span>
               )}
             </div>
-            <span className={`text-[9px] sm:text-xs ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+            <span className={`text-[9px] sm:text-xs ${product.stockQuantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
             </span>
           </div>
         </div>

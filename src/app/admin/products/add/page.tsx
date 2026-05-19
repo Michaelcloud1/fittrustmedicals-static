@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -27,7 +28,11 @@ export default function AddProductPage() {
     featured: false,
   });
 
-  // Handle image upload to AWS S3
+  // Cloudinary configuration
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dijqk2arj';
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'fittrust_products';
+
+  // Handle image upload to Cloudinary
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -50,29 +55,32 @@ export default function AddProductPage() {
     const previewUrl = URL.createObjectURL(file);
     setImagePreview(previewUrl);
 
-    // Upload to S3
+    // Upload to Cloudinary
     setUploadingImage(true);
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
-    uploadFormData.append('category', 'products');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+    formData.append('folder', 'fittrust-products');
 
     try {
-      console.log('Uploading to AWS S3...');
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: uploadFormData,
-      });
+      console.log('Uploading to Cloudinary...');
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
 
       const data = await response.json();
-      console.log('Upload response:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error?.message || 'Upload failed');
       }
 
-      // Save the image URL
-      setImageUrl(data.url);
-      setSuccess('Image uploaded to AWS S3 successfully!');
+      // Save the Cloudinary image URL
+      setImageUrl(data.secure_url);
+      setSuccess('✅ Image uploaded to Cloudinary successfully!');
       setTimeout(() => setSuccess(''), 3000);
       
     } catch (err) {
@@ -109,10 +117,9 @@ export default function AddProductPage() {
     setSuccess('');
 
     try {
-      // Prepare product data with proper number types
       const productData = {
         name: formData.name,
-        price: priceValue,  // Make sure this is a number
+        price: priceValue,
         originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : undefined,
         category: formData.category,
         description: formData.description,
@@ -127,9 +134,6 @@ export default function AddProductPage() {
         salesCount: 0,
       };
 
-      console.log('Saving product with price:', productData.price);
-      console.log('Full product data:', productData);
-
       const response = await fetch('/api/catalog/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -137,7 +141,6 @@ export default function AddProductPage() {
       });
 
       const data = await response.json();
-      console.log('Save response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to add product');
@@ -162,7 +165,7 @@ export default function AddProductPage() {
 
       // Redirect after 2 seconds
       setTimeout(() => {
-        router.push('/products');
+        router.push('/admin/products');
       }, 2000);
       
     } catch (err) {
@@ -197,7 +200,7 @@ export default function AddProductPage() {
       
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
         
-        {/* ===== IMAGE UPLOAD SECTION ===== */}
+        {/* ===== IMAGE UPLOAD SECTION (Cloudinary) ===== */}
         <div className="space-y-2 border-b pb-4">
           <label className="block text-sm font-medium text-gray-700">
             Product Image <span className="text-red-500">*</span>
@@ -226,7 +229,7 @@ export default function AddProductPage() {
                   ) : (
                     <Upload className="w-4 h-4" />
                   )}
-                  {uploadingImage ? 'Uploading to AWS...' : 'Choose Image'}
+                  {uploadingImage ? 'Uploading to Cloudinary...' : 'Choose Image'}
                 </div>
                 <input
                   type="file"
@@ -237,16 +240,19 @@ export default function AddProductPage() {
                 />
               </label>
               <p className="text-xs text-gray-500 mt-2">
-                Upload to AWS S3 Cloud Storage<br />
+                Upload to Cloudinary Cloud Storage (Free Tier)<br />
                 Supports: JPG, PNG, GIF, WEBP. Max 5MB
+              </p>
+              <p className="text-xs text-green-600 mt-1">
+                📸 Free 25GB storage + 25GB monthly bandwidth
               </p>
             </div>
           </div>
           
-          {/* Show the S3 URL */}
+          {/* Show the Cloudinary URL */}
           {imageUrl && (
-            <div className="mt-2 p-2 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-500 mb-1">✅ Image uploaded to AWS S3:</p>
+            <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-xs text-green-700 mb-1">✅ Image uploaded to Cloudinary:</p>
               <p className="text-xs text-green-600 break-all">{imageUrl}</p>
             </div>
           )}

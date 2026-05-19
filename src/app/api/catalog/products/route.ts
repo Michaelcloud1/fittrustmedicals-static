@@ -1,128 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
-// Path to products JSON file
-const productsFilePath = path.join(process.cwd(), 'src/data/products.json');
+// Backend API URL
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
-// Helper to read products from file
-const readProducts = () => {
-  try {
-    if (!fs.existsSync(productsFilePath)) {
-      fs.writeFileSync(productsFilePath, JSON.stringify([], null, 2));
-      return [];
-    }
-    const data = fs.readFileSync(productsFilePath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading products:', error);
-    return [];
-  }
-};
-
-// Helper to write products to file
-const writeProducts = (products: any[]) => {
-  try {
-    // Remove duplicates by ID before saving
-    const uniqueProducts = products.filter((product, index, self) =>
-      index === self.findIndex((p) => p.id === product.id)
-    );
-    fs.writeFileSync(productsFilePath, JSON.stringify(uniqueProducts, null, 2));
-    return true;
-  } catch (error) {
-    console.error('Error writing products:', error);
-    return false;
-  }
-};
-
-// Generate unique ID
-const generateUniqueId = () => {
-  return Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9);
-};
-
-// GET /api/catalog/products - Get all products
+// GET /api/catalog/products - Get all products from backend
 export async function GET(request: NextRequest) {
   try {
-    const products = readProducts();
+    const response = await fetch(`${BACKEND_URL}/api/catalog/products`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch products from backend');
+    }
+    
+    const data = await response.json();
     
     return NextResponse.json({
       success: true,
-      products: products,
-      total: products.length,
-      source: 'database'
+      products: data.products || data,
+      total: data.products?.length || data.length || 0,
+      source: 'backend'
     });
   } catch (error) {
     console.error('GET products error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch products' },
-      { status: 500 }
-    );
+    
+    // Return empty array instead of error
+    return NextResponse.json({
+      success: true,
+      products: [],
+      total: 0,
+      source: 'fallback'
+    });
   }
 }
 
-// POST /api/catalog/products - Add a new product
+// POST /api/catalog/products - Add a new product to backend
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const products = readProducts();
     
     console.log('Received product data:', body);
     
-    // Generate a truly unique ID
-    const uniqueId = generateUniqueId();
-    console.log('Generated unique ID:', uniqueId);
+    // Forward to backend API
+    const response = await fetch(`${BACKEND_URL}/api/catalog/products`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
     
-    // Ensure price is a valid number
-    let price = 0;
-    if (body.price) {
-      price = typeof body.price === 'number' ? body.price : parseFloat(body.price);
-      if (isNaN(price)) price = 0;
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to save product to backend');
     }
     
-    // Ensure originalPrice is a valid number if provided
-    let originalPrice = undefined;
-    if (body.originalPrice) {
-      originalPrice = typeof body.originalPrice === 'number' ? body.originalPrice : parseFloat(body.originalPrice);
-      if (isNaN(originalPrice)) originalPrice = undefined;
-    }
-    
-    // Ensure stock is a valid number
-    let stock = 0;
-    if (body.stock) {
-      stock = typeof body.stock === 'number' ? body.stock : parseInt(body.stock);
-      if (isNaN(stock)) stock = 0;
-    }
-    
-    const newProduct = {
-      id: uniqueId,
-      name: body.name || 'Unnamed Product',
-      price: price,
-      originalPrice: originalPrice,
-      category: body.category || 'Uncategorized',
-      description: body.description || '',
-      image: body.image || '/placeholder.svg',
-      stock: stock,
-      status: body.status || 'active',
-      isPromotional: body.isPromotional || false,
-      discountPercentage: body.discountPercentage ? (typeof body.discountPercentage === 'number' ? body.discountPercentage : parseInt(body.discountPercentage)) : undefined,
-      featured: body.featured || false,
-      rating: body.rating || 0,
-      reviewCount: body.reviewCount || 0,
-      salesCount: body.salesCount || 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      specifications: body.specifications || {},
-      gallery: body.image ? [body.image] : []
-    };
-    
-    console.log('Saving product with ID:', newProduct.id);
-    
-    products.push(newProduct);
-    writeProducts(products);
+    console.log('Product saved to backend:', data);
     
     return NextResponse.json({
       success: true,
-      data: newProduct,
+      data: data.data || data,
       message: 'Product added successfully'
     });
   } catch (error) {
@@ -134,20 +71,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT /api/catalog/products - UPDATE a product
+// PUT /api/catalog/products - Update a product
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    
-    // Get ID from URL query parameter OR from body
-    const { searchParams } = new URL(request.url);
-    const urlId = searchParams.get('id');
-    const bodyId = body.id;
-    const id = urlId || bodyId;
-    
-    console.log('🔍 PUT request - URL ID:', urlId);
-    console.log('🔍 PUT request - Body ID:', bodyId);
-    console.log('🔍 PUT request - Final ID:', id);
+    const { id, ...updateData } = body;
     
     if (!id) {
       return NextResponse.json(
@@ -156,58 +84,23 @@ export async function PUT(request: NextRequest) {
       );
     }
     
-    const products = readProducts();
-    const productIndex = products.findIndex((p: any) => p.id === id);
+    const response = await fetch(`${BACKEND_URL}/api/catalog/products/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updateData),
+    });
     
-    if (productIndex === -1) {
-      return NextResponse.json(
-        { success: false, error: 'Product not found' },
-        { status: 404 }
-      );
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to update product');
     }
-    
-    // Parse numeric values
-    const price = body.price !== undefined 
-      ? (typeof body.price === 'number' ? body.price : parseFloat(body.price))
-      : products[productIndex].price;
-    
-    const stock = body.stock !== undefined
-      ? (typeof body.stock === 'number' ? body.stock : parseInt(body.stock))
-      : products[productIndex].stock;
-    
-    const originalPrice = body.originalPrice !== undefined
-      ? (typeof body.originalPrice === 'number' ? body.originalPrice : parseFloat(body.originalPrice))
-      : products[productIndex].originalPrice;
-    
-    const discountPercentage = body.discountPercentage !== undefined
-      ? (typeof body.discountPercentage === 'number' ? body.discountPercentage : parseInt(body.discountPercentage))
-      : products[productIndex].discountPercentage;
-    
-    // Update the product
-    const updatedProduct = {
-      ...products[productIndex],
-      name: body.name !== undefined ? body.name : products[productIndex].name,
-      price: isNaN(price) ? products[productIndex].price : price,
-      originalPrice: originalPrice && !isNaN(originalPrice) ? originalPrice : undefined,
-      category: body.category !== undefined ? body.category : products[productIndex].category,
-      description: body.description !== undefined ? body.description : products[productIndex].description,
-      image: body.image !== undefined ? body.image : products[productIndex].image,
-      stock: isNaN(stock) ? products[productIndex].stock : stock,
-      isPromotional: body.isPromotional !== undefined ? body.isPromotional : products[productIndex].isPromotional,
-      discountPercentage: discountPercentage && !isNaN(discountPercentage) ? discountPercentage : products[productIndex].discountPercentage,
-      featured: body.featured !== undefined ? body.featured : products[productIndex].featured,
-      status: body.status !== undefined ? body.status : products[productIndex].status,
-      updatedAt: new Date().toISOString(),
-    };
-    
-    products[productIndex] = updatedProduct;
-    writeProducts(products);
-    
-    console.log('✅ Product updated successfully:', updatedProduct.id);
     
     return NextResponse.json({
       success: true,
-      data: updatedProduct,
+      data: data.data || data,
       message: 'Product updated successfully'
     });
   } catch (error) {
@@ -225,15 +118,6 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
-    // Clear all products
-    if (id === 'all' || searchParams.get('clearAll') === 'true') {
-      writeProducts([]);
-      return NextResponse.json({
-        success: true,
-        message: 'All products cleared'
-      });
-    }
-    
     if (!id) {
       return NextResponse.json(
         { success: false, error: 'Product ID required' },
@@ -241,17 +125,15 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    const products = readProducts();
-    const filteredProducts = products.filter((p: any) => p.id !== id);
+    const response = await fetch(`${BACKEND_URL}/api/catalog/products/${id}`, {
+      method: 'DELETE',
+    });
     
-    if (filteredProducts.length === products.length) {
-      return NextResponse.json(
-        { success: false, error: 'Product not found' },
-        { status: 404 }
-      );
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to delete product');
     }
-    
-    writeProducts(filteredProducts);
     
     return NextResponse.json({
       success: true,

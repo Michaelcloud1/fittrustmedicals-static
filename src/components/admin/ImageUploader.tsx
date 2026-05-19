@@ -9,6 +9,7 @@ interface UploadedImage {
   filename: string
   size: number
   type: string
+  publicId?: string
 }
 
 interface ImageUploaderProps {
@@ -31,47 +32,81 @@ export function ImageUploader({
   const [dragActive, setDragActive] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Cloudinary configuration
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dijqk2arj'
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'fittrust_products'
+
+  const uploadToCloudinary = async (file: File): Promise<UploadedImage> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('upload_preset', uploadPreset)
+    formData.append('folder', `fittrust-products/${category}`)
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error?.message || 'Upload failed')
+    }
+
+    const data = await response.json()
+
+    return {
+      url: data.secure_url,
+      filename: data.original_filename,
+      size: data.bytes,
+      type: data.format,
+      publicId: data.public_id,
+    }
+  }
+
   const handleUpload = async (files: FileList) => {
     if (files.length === 0) return
+
+    const remainingSlots = maxFiles - images.length
+    const filesToUpload = Math.min(files.length, remainingSlots)
+
+    if (filesToUpload === 0) {
+      setError(`Maximum ${maxFiles} images allowed`)
+      return
+    }
 
     setUploading(true)
     setError(null)
 
-    for (let i = 0; i < Math.min(files.length, maxFiles - images.length); i++) {
-      const file = files[i]
-      
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('category', category)
-
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-
-        const result = await response.json()
-
-        if (result.success) {
-          const newImage = {
-            url: result.url,
-            filename: result.filename,
-            size: result.size,
-            type: result.type,
-          }
-          
-          setImages(prev => [...prev, newImage])
-          onUploadSuccess?.(newImage)
-        } else {
-          throw new Error(result.error)
-        }
-      } catch (error) {
-        console.error('Upload error:', error)
-        setError(`Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    const uploadPromises = Array.from(files).slice(0, filesToUpload).map(async (file) => {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        throw new Error(`${file.name} is not an image file`)
       }
-    }
 
-    setUploading(false)
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error(`${file.name} exceeds 5MB limit`)
+      }
+
+      return uploadToCloudinary(file)
+    })
+
+    try {
+      const results = await Promise.all(uploadPromises)
+      
+      results.forEach((newImage) => {
+        setImages(prev => [...prev, newImage])
+        onUploadSuccess?.(newImage)
+      })
+    } catch (err) {
+      console.error('Upload error:', err)
+      setError(err instanceof Error ? err.message : 'Upload failed. Please try again.')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -133,13 +168,16 @@ export function ImageUploader({
             <p className="text-sm text-gray-500">
               Support: JPG, PNG, WebP • Max 5MB per file • {maxFiles} files max
             </p>
+            <p className="text-xs text-blue-500 mt-1">
+              📸 Powered by Cloudinary • Free 25GB Storage
+            </p>
           </div>
 
           <label className="inline-block">
             <input
               type="file"
               multiple
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
               onChange={handleFileInput}
               className="hidden"
               disabled={uploading || images.length >= maxFiles}

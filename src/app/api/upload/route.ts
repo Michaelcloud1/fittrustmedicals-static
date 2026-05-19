@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { s3Client, BUCKET_NAME } from '@/lib/s3';
+
+// Cloudinary configuration
+const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dijqk2arj';
+const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'fittrust_products';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,42 +34,48 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Create filename with timestamp to avoid conflicts
-    const timestamp = Date.now();
-    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const fileName = `${timestamp}_${originalName}`;
+    // Prepare FormData for Cloudinary
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+    formData.append('folder', `fittrust-products/${category}`);
     
-    // Create S3 folder structure (like category/filename)
-    const key = `${category}/${fileName}`;
+    // Optional: Add transformations for optimization
+    formData.append('quality', 'auto:good');
+    formData.append('fetch_format', 'auto');
+    formData.append('flags', 'attachment');
 
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // Upload to Cloudinary
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
 
-    // Upload to S3
-    const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Body: buffer,
-      ContentType: file.type,
-      ACL: 'public-read', // Makes the image publicly accessible
-    });
+    const result = await response.json();
 
-    await s3Client.send(command);
+    if (!response.ok) {
+      console.error('Cloudinary upload error:', result);
+      return NextResponse.json({ 
+        success: false, 
+        error: result.error?.message || 'Upload failed' 
+      }, { status: response.status });
+    }
 
-    // Get the public URL
-    const publicUrl = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'eu-north-1'}.amazonaws.com/${key}`;
-
-    console.log(`✅ File uploaded successfully to S3: ${key}`);
+    console.log(`✅ File uploaded successfully to Cloudinary: ${result.public_id}`);
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-      filename: fileName,
-      key: key,
-      size: file.size,
-      type: file.type,
-      category: category
+      url: result.secure_url,
+      filename: result.original_filename,
+      publicId: result.public_id,
+      size: result.bytes,
+      type: result.format,
+      category: category,
+      width: result.width,
+      height: result.height,
     });
 
   } catch (error) {
@@ -86,7 +94,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') || 'products';
     
     // For now, return empty array
-    // In a real app, you'd fetch from database or use S3 ListObjectsV2 command
+    // You can implement Cloudinary API search later if needed
     return NextResponse.json({
       success: true,
       files: [],

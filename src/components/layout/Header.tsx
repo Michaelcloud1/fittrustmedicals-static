@@ -122,16 +122,16 @@ export function Header() {
 
             {/* Icons - Cart & User */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              {/* User/Login Dropdown */}
+              {/* User/Login Dropdown - HIGH Z-INDEX */}
               <div className="relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-                  className="p-2 rounded-lg hover:bg-gray-100"
+                  className="p-2 rounded-lg hover:bg-gray-100 relative z-30"
                 >
                   <User size={20} />
                 </button>
                 {accountDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-[200] border">
                     {isAuthenticated ? (
                       <>
                         <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
@@ -188,8 +188,8 @@ export function Header() {
         </div>
       </div>
 
-      {/* SINGLE SEARCH BAR - Centered Below Logo */}
-      <div className="bg-white pb-4 pt-2">
+      {/* SINGLE SEARCH BAR - Centered Below Logo - LOWER Z-INDEX */}
+      <div className="bg-white pb-4 pt-2 relative z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
             <form onSubmit={handleSearch} className="relative">

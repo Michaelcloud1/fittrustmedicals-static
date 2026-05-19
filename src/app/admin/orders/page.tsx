@@ -1,11 +1,10 @@
-// src/app/admin/orders/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Eye, Download, Filter, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Eye, Download, Filter, CheckCircle, XCircle, RefreshCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface OrderItem {
@@ -37,6 +36,7 @@ export default function AdminOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(null);
   const [transactionRefs, setTransactionRefs] = useState<Record<string, string>>({});
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
@@ -93,6 +93,33 @@ export default function AdminOrdersPage() {
       alert('Something went wrong. Please try again.');
     } finally {
       setConfirmingOrderId(null);
+    }
+  };
+
+  // ✅ DELETE ORDER FUNCTION
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm('⚠️ Are you sure you want to delete this order? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingOrderId(orderId);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/orders/${orderId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        alert('✅ Order deleted successfully');
+        fetchOrders();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to delete order');
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete order');
+    } finally {
+      setDeletingOrderId(null);
     }
   };
 
@@ -389,6 +416,15 @@ export default function AdminOrdersPage() {
                           Confirm
                         </button>
                       )}
+                      {/* ✅ DELETE BUTTON */}
+                      <button
+                        onClick={() => handleDeleteOrder(order.id)}
+                        disabled={deletingOrderId === order.id}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="Delete Order"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
                   </td>
                 </tr>

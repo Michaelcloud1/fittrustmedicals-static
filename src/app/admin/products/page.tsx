@@ -16,8 +16,8 @@ interface Product {
   category: string;
   description: string;
   image: string;
-  stockQuantity: number;  // ✅ Fixed: use stockQuantity
-  isActive: boolean;      // ✅ Fixed: use isActive
+  stockQuantity: number;
+  isActive: boolean;
   rating: number;
   reviewCount: number;
 }
@@ -29,7 +29,6 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  // Edit modal states
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -44,7 +43,6 @@ export default function AdminProductsPage() {
   });
   const [updating, setUpdating] = useState(false);
 
-  // Fetch products from API
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -73,7 +71,6 @@ export default function AdminProductsPage() {
     fetchProducts();
   }, []);
 
-  // Delete product
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
     
@@ -93,7 +90,6 @@ export default function AdminProductsPage() {
     }
   };
 
-  // Open edit modal
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setEditFormData({
@@ -180,7 +176,6 @@ export default function AdminProductsPage() {
         </Link>
       </div>
 
-      {/* Search Bar */}
       <Card className="p-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -188,31 +183,54 @@ export default function AdminProductsPage() {
         </div>
       </Card>
 
-      {/* Products Table */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
-              <tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th><th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th></tr>
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredProducts.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No products found. Click "Add Product" to create one.</td></tr>
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">No products found. Click "Add Product" to create one.</td>
+                </tr>
               ) : (
                 filteredProducts.map((product) => (
                   <tr key={product.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap"><div className="flex items-center"><div className="w-10 h-10 bg-gray-100 rounded-lg flex-shrink-0 mr-3 overflow-hidden"><img src={product.image || '/placeholder.svg'} alt={product.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} /></div><div className="font-medium text-gray-900">{product.name}</div></div></td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex-shrink-0 mr-3 overflow-hidden">
+                          <img src={product.image || '/placeholder.svg'} alt={product.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                        </div>
+                        <div className="font-medium text-gray-900">{product.name}</div>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{product.category}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{formatNaira(product.price)}</td
-                    <td className="px-6 py-4 whitespace-nowrap"><span className={`text-sm font-medium ${product.stockQuantity < 20 ? 'text-orange-600' : 'text-gray-900'}`}>{product.stockQuantity}</span></td
-                    <td className="px-6 py-4 whitespace-nowrap"><Badge label={product.isActive ? 'Active' : 'Inactive'} variant={product.isActive ? 'success' : 'warning'} /></td
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{formatNaira(product.price)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`text-sm font-medium ${product.stockQuantity < 20 ? 'text-orange-600' : 'text-gray-900'}`}>
+                        {product.stockQuantity}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Badge label={product.isActive ? 'Active' : 'Inactive'} variant={product.isActive ? 'success' : 'warning'} />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        <Link href={`/products/${product.id}`} target="_blank"><button className="text-gray-500 hover:text-blue-600 p-1" title="View Product"><Eye size={18} /></button></Link>
+                        <Link href={`/products/${product.id}`} target="_blank">
+                          <button className="text-gray-500 hover:text-blue-600 p-1" title="View Product"><Eye size={18} /></button>
+                        </Link>
                         <button onClick={() => handleEdit(product)} className="text-blue-500 hover:text-blue-700 p-1" title="Edit Product"><Edit size={18} /></button>
                         <button onClick={() => handleDelete(product.id)} className="text-red-500 hover:text-red-700 p-1" title="Delete Product"><Trash2 size={18} /></button>
                       </div>
-                    </td
+                    </td>
                   </tr>
                 ))
               )}

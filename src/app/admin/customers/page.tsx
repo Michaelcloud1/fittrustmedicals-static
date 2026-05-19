@@ -14,24 +14,32 @@ import {
   Ban,
   CheckCircle,
   Download,
-  Filter
+  Filter,
+  RefreshCw
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { useAuthStore } from '@/stores/authStore';
 
 interface Customer {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  phone: string;
+  phoneNumber: string;
+  orders?: Order[];
   totalOrders: number;
   totalSpent: number;
   status: 'active' | 'inactive' | 'banned';
   createdAt: string;
   lastOrderAt?: string;
+}
+
+interface Order {
+  id: string;
+  totalAmount: number;
+  paymentStatus: string;
+  createdAt: string;
 }
 
 const containerVariants = {
@@ -48,90 +56,80 @@ const itemVariants = {
 };
 
 export default function CustomersPage() {
-  const { customer } = useAuthStore();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
+
+  // Fetch customers from backend
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch all users from backend (customers are users with role CUSTOMER)
+      const response = await fetch(`${BACKEND_URL}/api/users`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch customers');
+      }
+      
+      const allUsers = await response.json();
+      
+      // Filter only customers (exclude admins and staff if needed)
+      // and map to Customer interface
+      const customersList: Customer[] = await Promise.all(
+        (allUsers || [])
+          .filter((user: any) => user.role === 'CUSTOMER')
+          .map(async (user: any) => {
+            // Fetch user's orders to calculate total spent and orders count
+            const ordersResponse = await fetch(`${BACKEND_URL}/api/orders?userId=${user.id}`);
+            const orders = ordersResponse.ok ? await ordersResponse.json() : [];
+            
+            const paidOrders = orders.filter((order: Order) => order.paymentStatus === 'PAID');
+            const totalSpent = paidOrders.reduce((sum: number, order: Order) => sum + order.totalAmount, 0);
+            const lastOrder = paidOrders.length > 0 ? paidOrders.sort((a: Order, b: Order) => 
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            )[0] : null;
+            
+            return {
+              id: user.id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              phoneNumber: user.phoneNumber || 'N/A',
+              orders: orders,
+              totalOrders: paidOrders.length,
+              totalSpent: totalSpent,
+              status: user.status === 'ACTIVE' ? 'active' : user.status === 'BANNED' ? 'banned' : 'inactive',
+              createdAt: user.createdAt,
+              lastOrderAt: lastOrder?.createdAt,
+            };
+          })
+      );
+      
+      setCustomers(customersList);
+    } catch (err) {
+      console.error('Error fetching customers:', err);
+      setError('Failed to load customers. Please try again.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchCustomers();
+  };
 
   useEffect(() => {
-    // Mock customers data - replace with API call
-    const mockCustomers: Customer[] = [
-      {
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        phone: '+234 801 234 5678',
-        totalOrders: 5,
-        totalSpent: 125000,
-        status: 'active',
-        createdAt: '2024-01-15T00:00:00.000Z',
-        lastOrderAt: '2024-03-20T00:00:00.000Z',
-      },
-      {
-        id: '2',
-        name: 'Jane Smith',
-        email: 'jane.smith@example.com',
-        phone: '+234 802 345 6789',
-        totalOrders: 3,
-        totalSpent: 45000,
-        status: 'active',
-        createdAt: '2024-02-01T00:00:00.000Z',
-        lastOrderAt: '2024-03-15T00:00:00.000Z',
-      },
-      {
-        id: '3',
-        name: 'Mike Johnson',
-        email: 'mike.johnson@example.com',
-        phone: '+234 803 456 7890',
-        totalOrders: 0,
-        totalSpent: 0,
-        status: 'inactive',
-        createdAt: '2024-02-20T00:00:00.000Z',
-        lastOrderAt: undefined,
-      },
-      {
-        id: '4',
-        name: 'Sarah Williams',
-        email: 'sarah.williams@example.com',
-        phone: '+234 804 567 8901',
-        totalOrders: 8,
-        totalSpent: 280000,
-        status: 'active',
-        createdAt: '2023-12-10T00:00:00.000Z',
-        lastOrderAt: '2024-03-18T00:00:00.000Z',
-      },
-      {
-        id: '5',
-        name: 'David Brown',
-        email: 'david.brown@example.com',
-        phone: '+234 805 678 9012',
-        totalOrders: 2,
-        totalSpent: 89000,
-        status: 'banned',
-        createdAt: '2024-01-05T00:00:00.000Z',
-        lastOrderAt: '2024-02-28T00:00:00.000Z',
-      },
-    ];
-
-    // Add the current admin user if logged in
-    if (customer) {
-      mockCustomers.unshift({
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-        totalOrders: 0,
-        totalSpent: 0,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        lastOrderAt: undefined,
-      });
-    }
-
-    setCustomers(mockCustomers);
-    setLoading(false);
-  }, [customer]);
+    fetchCustomers();
+  }, []);
 
   const formatNaira = (price: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -177,13 +175,43 @@ export default function CustomersPage() {
     }
   };
 
+  const getFullName = (customer: Customer) => {
+    return `${customer.firstName} ${customer.lastName}`.trim();
+  };
+
+  // Filter customers based on search and status
   const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const fullName = getFullName(customer).toLowerCase();
+    const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
                          customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         customer.phone.includes(searchQuery);
+                         customer.phoneNumber.includes(searchQuery);
     const matchesStatus = statusFilter === 'all' || customer.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Export to CSV
+  const exportToCSV = () => {
+    const headers = ['Customer Name', 'Email', 'Phone', 'Total Orders', 'Total Spent', 'Status', 'Joined Date', 'Last Order'];
+    const csvData = filteredCustomers.map(customer => [
+      getFullName(customer),
+      customer.email,
+      customer.phoneNumber,
+      customer.totalOrders,
+      customer.totalSpent,
+      getStatusLabel(customer.status),
+      formatDate(customer.createdAt),
+      formatDate(customer.lastOrderAt)
+    ]);
+
+    const csvContent = [headers, ...csvData].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `customers-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const stats = {
     total: customers.length,
@@ -196,6 +224,20 @@ export default function CustomersPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 text-lg mb-4">{error}</div>
+        <button 
+          onClick={fetchCustomers}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
@@ -213,10 +255,26 @@ export default function CustomersPage() {
           <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
           <p className="text-gray-500 mt-1">Manage your customer base</p>
         </div>
-        <Button variant="secondary" className="flex items-center gap-2">
-          <Download className="w-4 h-4" />
-          Export Customers
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="secondary" 
+            className="flex items-center gap-2"
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button 
+            variant="secondary" 
+            className="flex items-center gap-2"
+            onClick={exportToCSV}
+            disabled={customers.length === 0}
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -292,10 +350,6 @@ export default function CustomersPage() {
                 <option value="inactive">Inactive</option>
                 <option value="banned">Banned</option>
               </select>
-              <Button variant="secondary" className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                Filter
-              </Button>
             </div>
           </div>
         </Card>
@@ -333,11 +387,11 @@ export default function CustomersPage() {
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                            {customer.name.charAt(0).toUpperCase()}
+                            {customer.firstName?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">{customer.name}</p>
-                            <p className="text-xs text-gray-500">ID: {customer.id}</p>
+                            <p className="font-medium text-gray-900">{getFullName(customer)}</p>
+                            <p className="text-xs text-gray-500">ID: {customer.id.slice(0, 8)}...</p>
                           </div>
                         </div>
                       </td>
@@ -345,11 +399,11 @@ export default function CustomersPage() {
                         <div className="space-y-1">
                           <div className="flex items-center gap-1 text-sm text-gray-600">
                             <Mail className="w-3 h-3" />
-                            <span>{customer.email}</span>
+                            <span className="truncate max-w-[150px]">{customer.email}</span>
                           </div>
                           <div className="flex items-center gap-1 text-sm text-gray-600">
                             <Phone className="w-3 h-3" />
-                            <span>{customer.phone}</span>
+                            <span>{customer.phoneNumber}</span>
                           </div>
                         </div>
                       </td>

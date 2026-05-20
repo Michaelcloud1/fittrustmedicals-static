@@ -186,9 +186,9 @@ export default function Home() {
       {/* HEADER - EXACTLY LIKE YOUR SCREENSHOT */}
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4">
-          {/* Top row: Logo + Search + User */}
-          <div className="flex items-center justify-between py-3">
-            {/* Logo */}
+          {/* Top row: Logo + User Dropdown */}
+          <div className="flex items-center justify-between py-4">
+            {/* Logo - Left */}
             <Link href="/" className="flex items-center gap-2">
               <div className="relative w-8 h-8">
                 <Image src="/images/logo.png" alt="Fittrust" fill className="object-contain" />
@@ -199,21 +199,7 @@ export default function Home() {
               </div>
             </Link>
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex-1 max-w-xl mx-6">
-              <div className="relative">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search products, brands and more..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-2 pl-10 pr-4 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                />
-              </div>
-            </form>
-
-            {/* User Dropdown - EXACT MATCH */}
+            {/* User Dropdown - Right */}
             <div className="relative">
               <button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
@@ -270,6 +256,22 @@ export default function Home() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Search Bar - Centered BELOW */}
+          <div className="pb-4">
+            <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
+              <div className="relative">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search products, brands and more..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full py-2.5 pl-10 pr-4 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                />
+              </div>
+            </form>
           </div>
         </div>
       </header>

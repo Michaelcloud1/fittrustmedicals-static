@@ -35,7 +35,6 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(null);
-  const [transactionRefs, setTransactionRefs] = useState<Record<string, string>>({});
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
@@ -59,16 +58,16 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // Confirm payment
+  // Confirm payment - auto-generate transaction reference
   const handleConfirmPayment = async (orderId: string) => {
-    const transactionReference = transactionRefs[orderId];
-    if (!transactionReference) {
-      alert('Please enter the transaction reference from bank alert');
+    if (!confirm('Confirm payment for this order? This will mark it as PAID and notify the customer.')) {
       return;
     }
 
     setConfirmingOrderId(orderId);
     try {
+      const transactionReference = `CONFIRMED_${Date.now()}_${orderId.slice(0, 8)}`;
+      
       const response = await fetch(`${BACKEND_URL}/api/admin/confirm-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,11 +78,6 @@ export default function AdminOrdersPage() {
 
       if (data.success) {
         alert('✅ Payment confirmed! Customer has been notified via email.');
-        setTransactionRefs(prev => {
-          const newRefs = { ...prev };
-          delete newRefs[orderId];
-          return newRefs;
-        });
         fetchOrders();
       } else {
         alert(data.error || 'Failed to confirm payment.');
@@ -96,7 +90,7 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // ✅ DELETE ORDER FUNCTION
+  // Delete order
   const handleDeleteOrder = async (orderId: string) => {
     if (!confirm('⚠️ Are you sure you want to delete this order? This action cannot be undone.')) {
       return;
@@ -121,10 +115,6 @@ export default function AdminOrdersPage() {
     } finally {
       setDeletingOrderId(null);
     }
-  };
-
-  const updateTransactionRef = (orderId: string, value: string) => {
-    setTransactionRefs(prev => ({ ...prev, [orderId]: value }));
   };
 
   useEffect(() => {
@@ -178,7 +168,7 @@ export default function AdminOrdersPage() {
   };
 
   const exportToCSV = () => {
-    const headers = ['Order ID', 'Customer', 'Email', 'Phone', 'Amount', 'Status', 'Date', 'Items', 'Transaction Ref'];
+    const headers = ['Order ID', 'Customer', 'Email', 'Phone', 'Amount', 'Status', 'Date', 'Items'];
     const csvData = filteredOrders.map(order => [
       order.id.slice(0, 12),
       `${order.user?.firstName || ''} ${order.user?.lastName || ''}`,
@@ -187,8 +177,7 @@ export default function AdminOrdersPage() {
       order.totalAmount?.toString() || '0',
       getStatusLabel(order),
       formatDate(order.createdAt),
-      order.items?.length?.toString() || '0',
-      order.transactionReference || ''
+      order.items?.length?.toString() || '0'
     ]);
 
     const csvContent = [headers, ...csvData].map(row => row.join(',')).join('\n');
@@ -334,7 +323,7 @@ export default function AdminOrdersPage() {
         </div>
       </Card>
 
-      {/* Orders Table */}
+      {/* Orders Table - WITHOUT transaction ref input */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -346,89 +335,80 @@ export default function AdminOrdersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction Ref</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-mono text-sm text-gray-900">{order.id.slice(0, 12)}...</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {order.user?.firstName} {order.user?.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500">{order.user?.email}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {formatDate(order.createdAt)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {order.items?.length || 0} items
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                    ₦{order.totalAmount?.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge 
-                      label={getStatusLabel(order)}
-                      variant={getStatusColor(order.paymentStatus === 'PAID' ? 'paid' : 'pending') as any}
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {order.paymentStatus === 'PENDING' ? (
-                      <input
-                        type="text"
-                        placeholder="Enter transaction ref"
-                        value={transactionRefs[order.id] || ''}
-                        onChange={(e) => updateTransactionRef(order.id, e.target.value)}
-                        className="w-40 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                      />
-                    ) : (
-                      <span className="text-xs text-gray-500 font-mono">
-                        {order.transactionReference?.slice(0, 15)}...
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center gap-2">
-                      <Link href={`/admin/orders/${order.id}`}>
-                        <button className="text-blue-600 hover:text-blue-800 p-1" title="View Details">
-                          <Eye size={18} />
-                        </button>
-                      </Link>
-                      {order.paymentStatus === 'PENDING' && (
-                        <button
-                          onClick={() => handleConfirmPayment(order.id)}
-                          disabled={confirmingOrderId === order.id}
-                          className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm"
-                          title="Confirm Payment"
-                        >
-                          {confirmingOrderId === order.id ? (
-                            <RefreshCw size={14} className="animate-spin" />
-                          ) : (
-                            <CheckCircle size={14} />
-                          )}
-                          Confirm
-                        </button>
-                      )}
-                      {/* ✅ DELETE BUTTON */}
-                      <button
-                        onClick={() => handleDeleteOrder(order.id)}
-                        disabled={deletingOrderId === order.id}
-                        className="text-red-600 hover:text-red-800 p-1"
-                        title="Delete Order"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+              {filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                    No orders found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="font-mono text-sm text-gray-900">{order.id.slice(0, 12)}...</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {order.user?.firstName} {order.user?.lastName}
+                        </div>
+                        <div className="text-sm text-gray-500">{order.user?.email}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {formatDate(order.createdAt)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {order.items?.length || 0} items
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                      ₦{order.totalAmount?.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Badge 
+                        label={getStatusLabel(order)}
+                        variant={getStatusColor(order.paymentStatus === 'PAID' ? 'paid' : 'pending') as any}
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <Link href={`/admin/orders/${order.id}`}>
+                          <button className="text-blue-600 hover:text-blue-800 p-1" title="View Details">
+                            <Eye size={18} />
+                          </button>
+                        </Link>
+                        {order.paymentStatus === 'PENDING' && (
+                          <button
+                            onClick={() => handleConfirmPayment(order.id)}
+                            disabled={confirmingOrderId === order.id}
+                            className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm"
+                            title="Confirm Payment"
+                          >
+                            {confirmingOrderId === order.id ? (
+                              <RefreshCw size={14} className="animate-spin" />
+                            ) : (
+                              <CheckCircle size={14} />
+                            )}
+                            Confirm
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteOrder(order.id)}
+                          disabled={deletingOrderId === order.id}
+                          className="text-red-600 hover:text-red-800 p-1"
+                          title="Delete Order"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

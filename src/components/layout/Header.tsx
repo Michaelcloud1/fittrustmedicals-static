@@ -38,7 +38,6 @@ export function Header() {
     setIsClient(true);
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
@@ -93,13 +92,13 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
-      {/* Top Bar - Logo and Icons */}
       <div className="border-b border-gray-100 bg-white">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            {/* Logo - STRAIGHT, NOT WRAPPED */}
+          {/* DESKTOP LAYOUT */}
+          <div className="hidden md:flex items-center justify-between gap-6">
+            {/* Logo */}
             <Link href="/" className="flex items-center gap-3 flex-shrink-0">
-              <div className="relative w-10 h-10 md:w-12 md:h-12">
+              <div className="relative w-10 h-10">
                 <Image
                   src="/images/logo.png"
                   alt="Fittrust Medicals"
@@ -108,19 +107,81 @@ export function Header() {
                   priority
                 />
               </div>
-              <div className="whitespace-nowrap">
-                <span className="text-lg md:text-xl font-bold text-blue-600">
+              <div className="flex flex-col">
+                <span className="text-lg font-bold text-blue-600">
                   FITTRUST MEDICALS
                 </span>
-                <span className="text-[10px] md:text-xs text-gray-500 block">
+                <span className="text-xs text-gray-500">
                   Healthcare Supplies
                 </span>
               </div>
             </Link>
 
-            {/* Icons - ONLY Cart & Mobile Menu (NO Account Dropdown here anymore) */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Cart */}
+            {/* Search Bar - Desktop */}
+            <form onSubmit={handleSearch} className="flex-1 max-w-xl">
+              <div className="relative">
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search products, brands and more..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full py-2.5 pl-11 pr-4 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
+                />
+              </div>
+            </form>
+
+            {/* Right Icons - ALWAYS VISIBLE ON DESKTOP */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              {/* Account Dropdown - VISIBLE ON DESKTOP */}
+              <div className="relative" ref={accountRef}>
+                <button
+                  onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
+                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+                >
+                  <User size={18} />
+                  <span className="hidden lg:inline">
+                    {isAuthenticated ? customer?.name?.split(' ')[0] || 'Account' : 'Sign In'}
+                  </span>
+                  <ChevronDown size={14} className="hidden lg:block" />
+                </button>
+                {accountDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-100 z-[9999]">
+                    {isAuthenticated ? (
+                      <>
+                        <div className="px-4 py-2 border-b">
+                          <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
+                          <p className="text-xs text-gray-500">{customer?.email}</p>
+                        </div>
+                        <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          My Account
+                        </Link>
+                        <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          My Orders
+                        </Link>
+                        <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Wishlist
+                        </Link>
+                        <hr className="my-1" />
+                        <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                          Logout
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Sign In
+                        </Link>
+                        <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Create Account
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Cart Icon */}
               <Link 
                 href="/cart" 
                 className="relative p-2 rounded-lg hover:bg-gray-100"
@@ -133,41 +194,82 @@ export function Header() {
                   </span>
                 )}
               </Link>
+            </div>
+          </div>
 
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-lg hover:bg-gray-100"
-              >
-                <Menu size={22} />
-              </button>
+          {/* MOBILE LAYOUT */}
+          <div className="md:hidden">
+            <div className="flex items-center justify-between">
+              {/* Logo - Mobile */}
+              <Link href="/" className="flex items-center gap-2">
+                <div className="relative w-8 h-8">
+                  <Image
+                    src="/images/logo.png"
+                    alt="Fittrust Medicals"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-blue-600">
+                    FITTRUST MEDICALS
+                  </span>
+                  <span className="text-[9px] text-gray-500">
+                    Healthcare Supplies
+                  </span>
+                </div>
+              </Link>
+
+              {/* Icons - Mobile */}
+              <div className="flex items-center gap-1">
+                {/* Account Icon - Mobile (no text) */}
+                <div className="relative" ref={accountRef}>
+                  <button
+                    onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
+                    className="p-2"
+                  >
+                    <User size={18} />
+                  </button>
+                </div>
+
+                {/* Cart Icon - Mobile */}
+                <Link href="/cart" className="relative p-2">
+                  <ShoppingCart size={18} />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </Link>
+
+                {/* Menu Button - Mobile */}
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="p-2"
+                >
+                  <Menu size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Search Bar - Mobile (BELOW) */}
+            <div className="mt-3">
+              <form onSubmit={handleSearch} className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search products, brands and more..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full py-2.5 pl-9 pr-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
+                />
+              </form>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Search Bar - Centered Below Logo */}
-      <div className="bg-white pb-5 pt-2">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto">
-            <form onSubmit={handleSearch} className="relative">
-              <Search 
-                size={18} 
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                placeholder="Search products, brands and more..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full py-3 pl-11 pr-4 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50"
-              />
-            </form>
-          </div>
-        </div>
-      </div>
-
-      {/* MOBILE SIDEBAR MENU - Contains ALL navigation including Account */}
+      {/* MOBILE SIDEBAR MENU */}
       {mobileMenuOpen && (
         <>
           <div className="fixed inset-0 bg-black/50 z-[100]" onClick={() => setMobileMenuOpen(false)} />
@@ -180,7 +282,6 @@ export function Header() {
             </div>
             
             <div className="p-4 space-y-4">
-              {/* Account Section - NOW IN SIDEBAR ONLY */}
               {isAuthenticated ? (
                 <div className="pb-3 border-b">
                   <div className="flex items-center gap-3">
@@ -189,22 +290,8 @@ export function Header() {
                     </div>
                     <div>
                       <div className="font-semibold">{customer?.name}</div>
-                      <div className="text-xs text-gray-500">{customer?.email}</div>
+                      <button onClick={handleLogout} className="text-xs text-red-600">Logout</button>
                     </div>
-                  </div>
-                  <div className="mt-3 space-y-2">
-                    <Link href="/account" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                      My Account
-                    </Link>
-                    <Link href="/orders" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                      My Orders
-                    </Link>
-                    <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                      Wishlist
-                    </Link>
-                    <button onClick={handleLogout} className="block w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded">
-                      Logout
-                    </button>
                   </div>
                 </div>
               ) : (

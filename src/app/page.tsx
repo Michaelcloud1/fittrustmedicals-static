@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -61,7 +61,7 @@ interface Product {
 export default function Home() {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -72,9 +72,29 @@ export default function Home() {
   const { customer, isAuthenticated, logout } = useAuthStore();
   const { items } = useCartStore();
 
+  const accountRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
+        setAccountDropdownOpen(false);
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node) && mobileMenuOpen) {
+        // Don't close if clicking on the menu button
+        if (!(event.target as HTMLElement).closest('.menu-button')) {
+          setMobileMenuOpen(false);
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [mobileMenuOpen]);
 
   const cartCount = isClient ? items.reduce((sum, item) => sum + (item.quantity || 1), 0) : 0;
 
@@ -89,7 +109,7 @@ export default function Home() {
   const handleLogout = () => {
     logout();
     router.push('/');
-    setDropdownOpen(false);
+    setAccountDropdownOpen(false);
     setMobileMenuOpen(false);
   };
 
@@ -184,12 +204,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* HEADER - FINAL CORRECT VERSION */}
+      {/* HEADER */}
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4">
-          {/* TOP ROW: Logo Image + Text + Icons - ALL ON SAME LINE */}
+          {/* TOP ROW: Logo + Icons */}
           <div className="flex items-center justify-between py-3">
-            {/* LEFT: Logo Image with text */}
+            {/* Logo */}
             <Link href="/" className="flex items-center gap-3">
               <div className="relative w-10 h-10">
                 <Image 
@@ -206,43 +226,19 @@ export default function Home() {
               </div>
             </Link>
 
-            {/* RIGHT: Icons - Sign In + Cart + Dotted Menu - ALL ON SAME LINE */}
+            {/* RIGHT Icons */}
             <div className="flex items-center gap-2">
-              {/* Sign In / Account */}
-              {isAuthenticated ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
-                  >
-                    <User size={18} />
-                    <span>{customer?.name?.split(' ')[0] || 'Account'}</span>
-                    <ChevronDown size={14} />
-                  </button>
-                  {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-50">
-                      <Link href="/account" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                        My Account
-                      </Link>
-                      <Link href="/orders" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                        My Orders
-                      </Link>
-                      <Link href="/wishlist" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                        Wishlist
-                      </Link>
-                      <hr className="my-1" />
-                      <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                        Logout
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Link href="/login" className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">
+              {/* Account Button - with ref for dropdown */}
+              <div className="relative" ref={accountRef}>
+                <button
+                  onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
+                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+                >
                   <User size={18} />
-                  <span>Sign In</span>
-                </Link>
-              )}
+                  <span>{isAuthenticated ? customer?.name?.split(' ')[0] || 'Account' : 'Sign In'}</span>
+                  <ChevronDown size={14} />
+                </button>
+              </div>
 
               {/* Cart Icon */}
               <Link href="/cart" className="relative p-2">
@@ -254,17 +250,17 @@ export default function Home() {
                 )}
               </Link>
 
-              {/* Dotted Menu Icon (⋮) - Mobile only */}
+              {/* Mobile Menu Button */}
               <button 
-                onClick={() => setMobileMenuOpen(true)}
-                className="p-2 md:hidden"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 menu-button"
               >
                 <MoreVertical size={20} className="text-gray-600" />
               </button>
             </div>
           </div>
 
-          {/* SEARCH BAR - FULL WIDTH, CENTERED, BELOW EVERYTHING - NO OVERLAP */}
+          {/* SEARCH BAR - Below header */}
           <div className="pb-5 pt-1">
             <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
               <div className="relative">
@@ -282,55 +278,78 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MOBILE SIDEBAR MENU */}
-      {mobileMenuOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-[100]" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed right-0 top-0 bottom-0 w-80 bg-white z-[101] shadow-xl overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-              <span className="font-bold text-blue-600">Menu</span>
-              <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-lg hover:bg-gray-100">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              {isAuthenticated ? (
-                <div className="pb-3 border-b">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">{customer?.name}</div>
-                      <button onClick={handleLogout} className="text-xs text-red-600">Logout</button>
-                    </div>
-                  </div>
+      {/* ACCOUNT DROPDOWN MENU - Appears below header on mobile (like your screenshot) */}
+      {accountDropdownOpen && (
+        <div className="absolute left-0 right-0 bg-white border-b shadow-lg z-40 md:absolute md:left-auto md:right-4 md:w-64 md:rounded-lg md:border">
+          <div className="container mx-auto px-4 py-3">
+            {isAuthenticated ? (
+              <div className="space-y-1">
+                <div className="px-3 py-2 border-b">
+                  <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
+                  <p className="text-xs text-gray-500">{customer?.email}</p>
                 </div>
-              ) : (
-                <div className="space-y-2 pb-3 border-b">
-                  <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full bg-blue-600 text-white text-center py-2 rounded-md text-sm font-semibold">
-                    Sign In
-                  </Link>
-                  <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="block w-full border border-blue-600 text-blue-600 text-center py-2 rounded-md text-sm font-semibold">
-                    Create Account
-                  </Link>
-                </div>
-              )}
-              <div className="pt-3 border-t">
-                <h3 className="font-semibold text-gray-800 mb-2 text-sm">Quick Links</h3>
-                <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  All Products
+                <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                  My Account
                 </Link>
-                <Link href="/sale" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-red-600 hover:text-red-700 rounded-lg">
-                  Hot Deals
+                <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                  My Orders
                 </Link>
-                <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  Contact Us
+                <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                  Wishlist
+                </Link>
+                <button onClick={handleLogout} className="block w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded">
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                  Sign In
+                </Link>
+                <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                  Create Account
                 </Link>
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE MENU (Dotted Menu) - Appears below header */}
+      {mobileMenuOpen && (
+        <div className="absolute left-0 right-0 bg-white border-b shadow-lg z-40 md:hidden">
+          <div className="container mx-auto px-4 py-3">
+            <div className="space-y-1">
+              <h3 className="font-semibold text-gray-800 px-3 py-2 text-sm border-b">Menu</h3>
+              <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                All Products
+              </Link>
+              <Link href="/sale" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded">
+                Hot Deals
+              </Link>
+              <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                Contact Us
+              </Link>
+              <hr className="my-2" />
+              <h3 className="font-semibold text-gray-800 px-3 py-2 text-sm">Categories</h3>
+              <Link href="/products?category=diagnostic" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                Diagnostic Equipment
+              </Link>
+              <Link href="/products?category=ppe" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                PPE & Safety
+              </Link>
+              <Link href="/products?category=monitoring" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                Patient Monitoring
+              </Link>
+              <Link href="/products?category=surgical" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                Surgical Supplies
+              </Link>
+              <Link href="/products?category=first-aid" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                First Aid
+              </Link>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Announcement Bar */}

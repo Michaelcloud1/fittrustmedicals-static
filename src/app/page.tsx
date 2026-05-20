@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/Button';
 import { 
@@ -20,10 +23,16 @@ import {
   Activity,
   ArrowRight,
   Tag,
-  Gift
+  Gift,
+  Search,
+  ShoppingCart,
+  User,
+  Menu,
+  X
 } from 'lucide-react';
-import Link from 'next/link';
 import { usePromotionsStore } from '@/stores/promotionsStore';
+import { useAuthStore } from '@/stores/authStore';
+import { useCartStore } from '@/stores/cartStore';
 import AnimatedAds from '@/components/home/AnimatedAds';
 import AnimatedFlyerCards from '@/components/home/AnimatedFlyerCards';
 import AnimatedCountdownBanner from '@/components/home/AnimatedCountdownBanner';
@@ -48,11 +57,37 @@ interface Product {
 }
 
 export default function Home() {
+  const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isClient, setIsClient] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [campaignProducts, setCampaignProducts] = useState<Product[]>([]); // ✅ FIXED: Added missing =
+  const [campaignProducts, setCampaignProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
   const { promotions } = usePromotionsStore();
+  const { customer, isAuthenticated, logout } = useAuthStore();
+  const { items } = useCartStore();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const cartCount = isClient ? items.reduce((sum, item) => sum + (item.quantity || 1), 0) : 0;
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery('');
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+    setMobileMenuOpen(false);
+  };
 
   const activePromotions = promotions?.filter(p => 
     p.displayOnHomepage && 
@@ -145,6 +180,92 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* SIMPLE HEADER - Like Jumia */}
+      <header className="sticky top-0 z-50 bg-white border-b">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between gap-4 py-3">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+              <div className="relative w-8 h-8">
+                <Image src="/images/logo.png" alt="Fittrust" fill className="object-contain" />
+              </div>
+              <span className="font-bold text-xl text-blue-600 hidden sm:inline">FITTRUST</span>
+            </Link>
+
+            {/* Search Bar */}
+            <form onSubmit={handleSearch} className="flex-1 max-w-2xl">
+              <div className="relative">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search products, brands and categories"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full py-2 pl-10 pr-4 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                />
+              </div>
+            </form>
+
+            {/* Right Icons */}
+            <div className="flex items-center gap-3">
+              <Link href="/account" className="hidden md:flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
+                <User size={18} />
+                <span>{isAuthenticated ? customer?.name?.split(' ')[0] || 'Account' : 'Sign In'}</span>
+              </Link>
+              <Link href="/cart" className="relative">
+                <ShoppingCart size={20} className="text-gray-600" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+              <button onClick={() => setMobileMenuOpen(true)} className="md:hidden">
+                <Menu size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setMobileMenuOpen(false)} />
+          <div className="fixed right-0 top-0 bottom-0 w-72 bg-white z-50 shadow-xl p-4 overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <span className="font-bold text-blue-600">Menu</span>
+              <button onClick={() => setMobileMenuOpen(false)}><X size={20} /></button>
+            </div>
+            
+            {isAuthenticated ? (
+              <div className="mb-4 pb-4 border-b">
+                <p className="font-semibold">{customer?.name}</p>
+                <p className="text-sm text-gray-500">{customer?.email}</p>
+                <button onClick={handleLogout} className="mt-2 text-sm text-red-600">Logout</button>
+              </div>
+            ) : (
+              <div className="space-y-2 mb-4 pb-4 border-b">
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full bg-blue-600 text-white text-center py-2 rounded-md text-sm">
+                  Sign In
+                </Link>
+                <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="block w-full border border-blue-600 text-blue-600 text-center py-2 rounded-md text-sm">
+                  Create Account
+                </Link>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <Link href="/account" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-gray-700">My Account</Link>
+              <Link href="/orders" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-gray-700">Orders</Link>
+              <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-gray-700">Wishlist</Link>
+              <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-gray-700">Products</Link>
+              <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-gray-700">Contact</Link>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Announcement Bar */}
       {activePromotions.length > 0 && (
         <motion.div 

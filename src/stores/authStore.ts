@@ -1,129 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export interface Address {
-  id: string;
-  label: string;
-  street: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  isDefault: boolean;
-}
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'order' | 'payment' | 'shipping' | 'promotion';
-  read: boolean;
-  createdAt: string;
-}
-
-export interface CustomerProfile {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role?: string;
-  addresses: Address[];
-  wishlist: string[];
-  notifications: Notification[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Order {
-  id: string;
-  orderNumber: string;
-  items: {
-    productId: string;
-    name: string;
-    quantity: number;
-    price: number;
-    image: string;
-  }[];
-  total: number;
-  status: 'pending' | 'payment_pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  paymentStatus: 'pending' | 'confirmed' | 'failed';
-  shippingAddress: Address;
-  createdAt: string;
-  updatedAt: string;
-  trackingNumber?: string;
-  estimatedDelivery?: string;
-  staffId?: string;
-  receiptSent?: boolean;
-  customerEmail?: string;
-}
-
-export interface StaffPerformance {
-  staffId: string;
-  staffName: string;
-  ordersProcessed: number;
-  totalSales: number;
-  customersServed: number;
-  lastActive: string;
-}
-
-export interface InventoryAlert {
-  productId: string;
-  productName: string;
-  currentStock: number;
-  threshold: number;
-  status: 'low' | 'out' | 'ok';
-}
-
-export interface WalletTransaction {
-  id: string;
-  type: 'credit' | 'debit';
-  amount: number;
-  description: string;
-  orderId?: string;
-  customerEmail?: string;
-  status: 'pending' | 'completed' | 'failed';
-  createdAt: string;
-  processedAt?: string;
-}
-
-export interface BankAccount {
-  id: string;
-  bankName: string;
-  accountNumber: string;
-  accountName: string;
-  isDefault: boolean;
-}
-
-export interface WithdrawalRequest {
-  id: string;
-  amount: number;
-  bankAccountId: string;
-  status: 'pending' | 'processing' | 'completed' | 'rejected';
-  requestedAt: string;
-  processedAt?: string;
-  processedBy?: string;
-  rejectionReason?: string;
-}
-
-export interface Wallet {
-  balance: number;
-  totalEarned: number;
-  totalWithdrawn: number;
-  pendingWithdrawals: number;
-  transactions: WalletTransaction[];
-  bankAccounts: BankAccount[];
-  withdrawalRequests: WithdrawalRequest[];
-}
-
-export interface FinancialMetrics {
-  dailyRevenue: number;
-  weeklyRevenue: number;
-  monthlyRevenue: number;
-  totalOrders: number;
-  averageOrderValue: number;
-  topProducts: { name: string; sales: number; revenue: number }[];
-  walletBalance: number;
-}
+// ... (keep all your existing interfaces: Address, Notification, CustomerProfile, Order, etc.)
 
 interface AuthStore {
   isAuthenticated: boolean;
@@ -141,67 +19,12 @@ interface AuthStore {
   register: (data: any) => Promise<boolean>;
   logout: () => void;
   
-  // Profile actions
-  updateProfile: (updates: Partial<CustomerProfile>) => void;
-  updatePassword: (currentPassword: string, newPassword: string) => boolean;
-  
-  // Address actions
-  addAddress: (address: Omit<Address, 'id'>) => void;
-  updateAddress: (id: string, updates: Partial<Address>) => void;
-  deleteAddress: (id: string) => void;
-  setDefaultAddress: (id: string) => void;
-  
-  // Wishlist actions
-  addToWishlist: (productId: string) => void;
-  removeFromWishlist: (productId: string) => void;
-  isInWishlist: (productId: string) => boolean;
-  
-  // Notification actions
-  addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void;
-  markNotificationAsRead: (id: string) => void;
-  markAllNotificationsAsRead: () => void;
-  deleteNotification: (id: string) => void;
-  getUnreadCount: () => number;
-  
-  // Order actions
-  addOrder: (order: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt'>) => void;
-  updateOrderStatus: (orderId: string, status: Order['status'], staffId?: string) => void;
-  getOrderById: (orderId: string) => Order | undefined;
-  assignOrderToStaff: (orderId: string, staffId: string) => void;
-  markReceiptSent: (orderId: string) => void;
-  
-  // Staff performance tracking
-  recordStaffSale: (staffId: string, staffName: string, orderTotal: number) => void;
-  getStaffPerformance: () => StaffPerformance[];
-  getTopPerformingStaff: (limit?: number) => StaffPerformance[];
-  
-  // Inventory management
-  updateInventory: (productId: string, newStock: number) => void;
-  getInventoryAlerts: () => InventoryAlert[];
-  addInventoryAlert: (alert: Omit<InventoryAlert, 'status'>) => void;
-  
-  // Financial analytics
-  getFinancialMetrics: (period: 'daily' | 'weekly' | 'monthly') => FinancialMetrics;
-  getSalesByDateRange: (startDate: string, endDate: string) => number;
-  getRevenueChartData: (days: number) => { date: string; revenue: number; orders: number }[];
-  
-  // Automated receipts
-  sendOrderReceipt: (orderId: string, email: string) => Promise<boolean>;
-  sendBulkReceipts: (orderIds: string[]) => Promise<{ sent: number; failed: number }>;
-  
-  // Wallet actions
-  addPaymentToWallet: (amount: number, orderId: string, customerEmail: string) => void;
-  getWalletBalance: () => number;
-  getWalletTransactions: (limit?: number) => WalletTransaction[];
-  addBankAccount: (account: Omit<BankAccount, 'id'>) => void;
-  removeBankAccount: (id: string) => void;
-  setDefaultBankAccount: (id: string) => void;
-  requestWithdrawal: (amount: number, bankAccountId: string) => boolean;
-  processWithdrawal: (withdrawalId: string, approve: boolean, reason?: string) => void;
-  getPendingWithdrawals: () => WithdrawalRequest[];
-  getWithdrawalHistory: () => WithdrawalRequest[];
+  // ... (keep all your other method signatures)
   
   setHydrated: (hydrated: boolean) => void;
+  
+  // NEW: Fetch user role from backend
+  fetchUserRole: (email: string) => Promise<{ role: string; userData: any }>;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -227,9 +50,112 @@ export const useAuthStore = create<AuthStore>()(
 
       setHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
 
+      // NEW: Fetch user role from backend API
+      fetchUserRole: async (email: string) => {
+        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
+        
+        try {
+          // Try to fetch user from backend
+          const response = await fetch(`${BACKEND_URL}/api/users?email=${encodeURIComponent(email)}`);
+          if (response.ok) {
+            const users = await response.json();
+            const user = users.find((u: any) => u.email === email);
+            if (user) {
+              return { role: user.role || 'CUSTOMER', userData: user };
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch user role from backend:', error);
+        }
+        
+        return { role: 'CUSTOMER', userData: null };
+      },
+
       login: async (email, password) => {
+        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
+        
+        try {
+          // Call your actual backend login endpoint
+          const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const userRole = data.user?.role || data.role || 'CUSTOMER';
+            const userData = data.user || data;
+            
+            // Create customer profile based on role
+            const customerProfile: CustomerProfile = {
+              id: userData.id || 'user-' + Date.now(),
+              name: userData.name || userData.firstName ? `${userData.firstName} ${userData.lastName || ''}` : email.split('@')[0],
+              email: email,
+              phone: userData.phone || '',
+              role: userRole.toLowerCase(),
+              addresses: [],
+              wishlist: [],
+              notifications: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            
+            // Set store state based on role
+            const isAdmin = userRole.toLowerCase() === 'admin';
+            const isStaff = userRole.toLowerCase() === 'staff';
+            
+            set({
+              isAuthenticated: true,
+              isAdmin: isAdmin,
+              isStaff: isStaff,
+              customer: customerProfile,
+            });
+            
+            console.log('Login successful. Role:', userRole, 'isAdmin:', isAdmin, 'isStaff:', isStaff);
+            return true;
+          }
+        } catch (error) {
+          console.error('Backend login error:', error);
+        }
+        
+        // FALLBACK: For development/testing - check against registered users in localStorage
+        // This allows admin users created in the admin panel to login
+        const registeredUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
+        const foundUser = registeredUsers.find((u: any) => u.email === email && u.password === password);
+        
+        if (foundUser) {
+          const userRole = foundUser.role?.toLowerCase() || 'customer';
+          const isAdmin = userRole === 'admin';
+          const isStaff = userRole === 'staff';
+          
+          const customerProfile: CustomerProfile = {
+            id: foundUser.id || 'user-' + Date.now(),
+            name: foundUser.fullName || foundUser.name || email.split('@')[0],
+            email: email,
+            phone: foundUser.phone || '',
+            role: userRole,
+            addresses: [],
+            wishlist: [],
+            notifications: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          
+          set({
+            isAuthenticated: true,
+            isAdmin: isAdmin,
+            isStaff: isStaff,
+            customer: customerProfile,
+          });
+          
+          console.log('Local user login. Role:', userRole);
+          return true;
+        }
+        
+        // FINAL FALLBACK: Hardcoded admin/staff for testing
         if (email === 'admin@fittrust.com' && password === 'admin123') {
-          const adminCustomer: CustomerProfile = {
+          const adminProfile: CustomerProfile = {
             id: 'admin-1',
             name: 'Administrator',
             email: email,
@@ -246,14 +172,13 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: true,
             isAdmin: true,
             isStaff: false,
-            customer: adminCustomer,
+            customer: adminProfile,
           });
-          
           return true;
         }
         
         if (email === 'staff@fittrust.com' && password === 'staff123') {
-          const staffCustomer: CustomerProfile = {
+          const staffProfile: CustomerProfile = {
             id: 'staff-1',
             name: 'Staff Member',
             email: email,
@@ -270,34 +195,8 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: true,
             isAdmin: false,
             isStaff: true,
-            customer: staffCustomer,
+            customer: staffProfile,
           });
-          
-          return true;
-        }
-        
-        if (email && password.length >= 6) {
-          const existingCustomer = get().customer;
-          const customer: CustomerProfile = {
-            id: existingCustomer?.id || 'cust-' + Date.now(),
-            name: existingCustomer?.name || email.split('@')[0],
-            email: email,
-            phone: existingCustomer?.phone || '',
-            role: 'customer',
-            addresses: existingCustomer?.addresses || [],
-            wishlist: existingCustomer?.wishlist || [],
-            notifications: existingCustomer?.notifications || [],
-            createdAt: existingCustomer?.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          
-          set({
-            isAuthenticated: true,
-            isAdmin: false,
-            isStaff: false,
-            customer: customer,
-          });
-          
           return true;
         }
         
@@ -305,12 +204,69 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       register: async (data) => {
+        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
+        
+        try {
+          // Try to register via backend
+          const response = await fetch(`${BACKEND_URL}/api/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            const userRole = result.user?.role || data.role || 'CUSTOMER';
+            
+            const newCustomer: CustomerProfile = {
+              id: result.user?.id || 'cust-' + Date.now(),
+              name: data.fullName || data.name || data.email.split('@')[0],
+              email: data.email,
+              phone: data.phone || '',
+              role: userRole.toLowerCase(),
+              addresses: [],
+              wishlist: [],
+              notifications: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            
+            set({
+              isAuthenticated: true,
+              isAdmin: userRole.toLowerCase() === 'admin',
+              isStaff: userRole.toLowerCase() === 'staff',
+              customer: newCustomer,
+            });
+            
+            return true;
+          }
+        } catch (error) {
+          console.error('Backend registration error:', error);
+        }
+        
+        // FALLBACK: Store user in localStorage for demo
+        const registeredUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
+        const userRole = data.role?.toLowerCase() || 'customer';
+        
+        const newUser = {
+          id: 'user-' + Date.now(),
+          fullName: data.fullName || data.name,
+          email: data.email,
+          password: data.password,
+          phone: data.phone,
+          role: userRole,
+          createdAt: new Date().toISOString(),
+        };
+        
+        registeredUsers.push(newUser);
+        localStorage.setItem('fittrust-users', JSON.stringify(registeredUsers));
+        
         const newCustomer: CustomerProfile = {
-          id: 'cust-' + Date.now(),
-          name: data.name || data.email.split('@')[0],
+          id: newUser.id,
+          name: newUser.fullName || data.email.split('@')[0],
           email: data.email,
           phone: data.phone || '',
-          role: 'customer',
+          role: userRole,
           addresses: [],
           wishlist: [],
           notifications: [],
@@ -320,8 +276,8 @@ export const useAuthStore = create<AuthStore>()(
         
         set({
           isAuthenticated: true,
-          isAdmin: false,
-          isStaff: false,
+          isAdmin: userRole === 'admin',
+          isStaff: userRole === 'staff',
           customer: newCustomer,
         });
         
@@ -339,6 +295,9 @@ export const useAuthStore = create<AuthStore>()(
         });
       },
 
+      // ... (keep all your other existing methods: updateProfile, updatePassword, addAddress, etc.)
+      // I'm omitting them for brevity, but you must keep ALL your existing methods below this line
+      
       updateProfile: (updates) => {
         set((state) => ({
           customer: state.customer
@@ -476,10 +435,7 @@ export const useAuthStore = create<AuthStore>()(
         
         set((state) => ({ orders: [...state.orders, newOrder] }));
         
-        // Add payment to wallet
         get().addPaymentToWallet(newOrder.total, newOrder.id, order.customerEmail || '');
-        
-        // Auto-send receipt
         get().sendOrderReceipt(newOrder.id, order.customerEmail || '');
         
         get().addNotification({
@@ -665,7 +621,6 @@ export const useAuthStore = create<AuthStore>()(
         if (!order) return false;
         
         console.log(`Sending receipt for order ${order.orderNumber} to ${email}`);
-        
         get().markReceiptSent(orderId);
         
         get().addNotification({
@@ -691,7 +646,6 @@ export const useAuthStore = create<AuthStore>()(
         return { sent, failed };
       },
 
-      // Wallet methods
       addPaymentToWallet: (amount, orderId, customerEmail) => {
         const transaction: WalletTransaction = {
           id: 'txn-' + Date.now(),

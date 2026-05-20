@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { 
@@ -15,15 +15,49 @@ import {
   Download
 } from 'lucide-react';
 
+interface OrderItem {
+  name: string;
+  quantity: number;
+  price: number;
+  image?: string;
+}
+
+interface Order {
+  id: string;
+  orderNumber: string;
+  total: number;
+  status: string;
+  createdAt: string;
+  items: OrderItem[];
+  user?: {
+    email: string;
+  };
+  customerEmail?: string;
+}
+
 export default function OrdersPage() {
-  const { orders } = useAuthStore();
+  const { customer, orders } = useAuthStore();
+  const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const filteredOrders = orders.filter(order => {
+  // CRITICAL FIX: Filter orders to ONLY show current customer's orders
+  useEffect(() => {
+    if (customer?.email) {
+      const filtered = orders.filter((order: Order) => 
+        order.user?.email === customer.email || 
+        order.customerEmail === customer.email
+      );
+      setMyOrders(filtered);
+    } else {
+      setMyOrders([]);
+    }
+  }, [orders, customer]);
+
+  const filteredOrders = myOrders.filter(order => {
     const matchesSearch = 
-      order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      order.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.items?.some(item => item.name?.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -57,6 +91,28 @@ export default function OrdersPage() {
         return 'bg-gray-100 text-gray-700';
     }
   };
+
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'delivered': return 'Delivered';
+      case 'shipped': return 'Shipped';
+      case 'processing': return 'Processing';
+      case 'cancelled': return 'Cancelled';
+      case 'pending': return 'Pending';
+      default: return status?.replace('_', ' ') || 'Pending';
+    }
+  };
+
+  if (!customer) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500">Please login to view your orders</p>
+        <Link href="/login" className="text-blue-600 hover:underline mt-2 inline-block">
+          Login
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -112,7 +168,7 @@ export default function OrdersPage() {
                       <div className="flex items-center space-x-3">
                         <h3 className="font-semibold text-gray-900">Order #{order.orderNumber}</h3>
                         <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}`}>
-                          {order.status.replace('_', ' ').toUpperCase()}
+                          {getStatusDisplay(order.status)}
                         </span>
                       </div>
                       <p className="text-sm text-gray-500 mt-1">
@@ -125,15 +181,15 @@ export default function OrdersPage() {
                     </div>
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className="text-lg font-bold text-gray-900">₦{order.total.toLocaleString()}</p>
-                    <p className="text-sm text-gray-500">{order.items.length} items</p>
+                    <p className="text-lg font-bold text-gray-900">₦{(order.total || 0).toLocaleString()}</p>
+                    <p className="text-sm text-gray-500">{order.items?.length || 0} items</p>
                   </div>
                 </div>
               </div>
 
               <div className="p-6">
                 <div className="space-y-4">
-                  {order.items.map((item, index) => (
+                  {order.items?.map((item, index) => (
                     <div key={index} className="flex items-center space-x-4">
                       <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
                         {item.image ? (
@@ -144,9 +200,9 @@ export default function OrdersPage() {
                       </div>
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{item.name}</p>
-                        <p className="text-sm text-gray-500">Qty: {item.quantity} × ₦{item.price.toLocaleString()}</p>
+                        <p className="text-sm text-gray-500">Qty: {item.quantity} × ₦{(item.price || 0).toLocaleString()}</p>
                       </div>
-                      <p className="font-medium text-gray-900">₦{(item.quantity * item.price).toLocaleString()}</p>
+                      <p className="font-medium text-gray-900">₦{((item.quantity || 0) * (item.price || 0)).toLocaleString()}</p>
                     </div>
                   ))}
                 </div>

@@ -54,17 +54,30 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   
-  const { isAuthenticated, isAdmin, logout, _hasHydrated, getInventoryAlerts, getUnreadCount, wallet } = useAuthStore();
+  // Get user data from auth store
+  const { 
+    isAuthenticated, 
+    isAdmin, 
+    logout, 
+    _hasHydrated, 
+    getInventoryAlerts, 
+    getUnreadCount, 
+    wallet,
+    customer  // ADD THIS - to get logged-in user data
+  } = useAuthStore();
 
   const inventoryAlertCount = getInventoryAlerts().filter(a => a.status === 'low' || a.status === 'out').length;
   const unreadCount = getUnreadCount();
 
+  // Get logged-in user's name and email
+  const userName = customer?.name || customer?.firstName || 'Administrator';
+  const userEmail = customer?.email || 'admin@fittrust.com';
+  const userInitial = userName.charAt(0).toUpperCase();
+
   // Check if mobile on mount and on resize
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
       if (window.innerWidth >= 1024) {
         setMobileMenuOpen(false);
       }
@@ -291,14 +304,14 @@ export default function AdminLayout({
               )}
             </button>
             
-            {/* Admin Avatar - hidden text on mobile */}
+            {/* Admin Avatar - NOW USING LOGGED-IN USER DATA */}
             <div className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-6 border-l border-gray-200">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg text-sm sm:text-base">
-                A
+                {userInitial}
               </div>
               <div className="hidden sm:block">
-                <p className="font-medium text-gray-800 text-sm">Administrator</p>
-                <p className="text-xs text-gray-500">admin@fittrust.com</p>
+                <p className="font-medium text-gray-800 text-sm">{userName}</p>
+                <p className="text-xs text-gray-500">{userEmail}</p>
               </div>
             </div>
           </div>

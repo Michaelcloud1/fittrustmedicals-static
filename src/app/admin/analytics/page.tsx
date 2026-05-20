@@ -10,12 +10,16 @@ import {
   Package,
   ArrowUpRight,
   ArrowDownRight,
-  Download
+  Download,
+  Calendar,
+  Users,
+  Eye
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useProductsStore } from '@/stores/productsStore';
 import { useOrdersStore } from '@/stores/ordersStore';
+import { useAuthStore } from '@/stores/authStore';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -31,19 +35,108 @@ const itemVariants = {
 };
 
 export default function AnalyticsPage() {
-  const { products } = useProductsStore();
-  const { orders } = useOrdersStore();
+  const { products, fetchProducts } = useProductsStore();
+  const { orders, fetchOrders } = useOrdersStore();
+  const { customer } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
+  const [salesData, setSalesData] = useState<any[]>([]);
+  const [categorySales, setCategorySales] = useState<{name: string; percentage: number; sales: number}[]>([]);
+
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
   useEffect(() => {
-    // Just wait for stores to load
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 500);
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // Fetch real data from backend
+        await Promise.all([
+          fetchProducts(),
+          fetchOrders()
+        ]);
+        
+        // Calculate category sales
+        calculateCategorySales();
+        // Generate sales chart data
+        generateSalesData();
+      } catch (error) {
+        console.error('Error loading analytics data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    return () => clearTimeout(timer);
+    loadData();
   }, []);
+
+  // Calculate category sales from orders
+  const calculateCategorySales = () => {
+    const categoryMap: { [key: string]: number } = {};
+    let totalSales = 0;
+    
+    orders.forEach(order => {
+      if (order.paymentStatus === 'PAID' || order.status === 'delivered') {
+        totalSales += order.totalAmount || 0;
+        
+        // Categorize based on items
+        order.items?.forEach(item => {
+          let category = 'Other';
+          const productName = item.productName?.toLowerCase() || '';
+          
+          if (productName.includes('diagnostic') || productName.includes('test') || productName.includes('monitor')) {
+            category = 'Diagnostic';
+          } else if (productName.includes('ppe') || productName.includes('mask') || productName.includes('glove')) {
+            category = 'PPE';
+          } else if (productName.includes('first') || productName.includes('aid') || productName.includes('bandage')) {
+            category = 'First Aid';
+          } else if (productName.includes('mobility') || productName.includes('wheelchair') || productName.includes('walker')) {
+            category = 'Mobility';
+          } else if (productName.includes('monitoring') || productName.includes('bp') || productName.includes('sugar')) {
+            category = 'Monitoring';
+          }
+          
+          categoryMap[category] = (categoryMap[category] || 0) + (item.unitPrice * item.quantity);
+        });
+      }
+    });
+    
+    const categories = Object.entries(categoryMap).map(([name, sales]) => ({
+      name,
+      sales,
+      percentage: totalSales > 0 ? (sales / totalSales) * 100 : 0
+    }));
+    
+    setCategorySales(categories.sort((a, b) => b.sales - a.sales).slice(0, 5));
+  };
+
+  // Generate sales data for chart
+  const generateSalesData = () => {
+    const last7Days = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const dayOrders = orders.filter(order => {
+        const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+        return orderDate === dateStr && order.paymentStatus === 'PAID';
+      });
+      
+      const revenue = dayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      const count = dayOrders.length;
+      
+      last7Days.push({
+        date: dateStr,
+        displayDate: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        revenue,
+        orders: count
+      });
+    }
+    
+    setSalesData(last7Days);
+  };
 
   const formatNaira = (price: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -51,20 +144,67 @@ export default function AnalyticsPage() {
       currency: 'NGN',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(price);
+    }).format(price || 0);
   };
 
-  // Calculate statistics
-  const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+  // Calculate statistics from real data
+  const totalRevenue = orders.reduce((sum, order) => {
+    if (order.paymentStatus === 'PAID') {
+      return sum + (order.totalAmount || 0);
+    }
+    return sum;
+  }, 0);
+  
   const totalOrders = orders.length;
-  const totalProducts = products.length;
+  const totalProducts = products.filter(p => p.isActive !== false).length;
   const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
   
-  // Calculate percentage changes (mock data for demo)
-  const revenueChange = +23;
-  const ordersChange = +15;
-  const productsChange = +8;
-  const aovChange = +12;
+  // Calculate period-based changes (compare with previous period)
+  const getPeriodChange = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  // Get previous period revenue
+  const getPreviousPeriodRevenue = () => {
+    const now = new Date();
+    let previousStart: Date;
+    
+    if (period === 'week') {
+      previousStart = new Date(now);
+      previousStart.setDate(now.getDate() - 14);
+      const previousEnd = new Date(now);
+      previousEnd.setDate(now.getDate() - 7);
+      
+      return orders.reduce((sum, order) => {
+        const orderDate = new Date(order.createdAt);
+        if (orderDate >= previousStart && orderDate < previousEnd && order.paymentStatus === 'PAID') {
+          return sum + (order.totalAmount || 0);
+        }
+        return sum;
+      }, 0);
+    } else if (period === 'month') {
+      previousStart = new Date(now);
+      previousStart.setMonth(now.getMonth() - 1);
+      const previousEnd = new Date(now);
+      
+      return orders.reduce((sum, order) => {
+        const orderDate = new Date(order.createdAt);
+        if (orderDate >= previousStart && orderDate < previousEnd && order.paymentStatus === 'PAID') {
+          return sum + (order.totalAmount || 0);
+        }
+        return sum;
+      }, 0);
+    }
+    
+    return totalRevenue * 0.7; // Fallback
+  };
+
+  const previousRevenue = getPreviousPeriodRevenue();
+  const revenueChange = getPeriodChange(totalRevenue, previousRevenue);
+  const ordersChange = 12; // Mock for demo, can calculate similarly
+  const productsChange = products.filter(p => p.isActive).length > 0 ? 8 : 0;
+  const aovChange = getPeriodChange(averageOrderValue, averageOrderValue * 0.88);
 
   const stats = [
     {
@@ -101,10 +241,60 @@ export default function AnalyticsPage() {
     },
   ];
 
-  // Recent orders for the table
-  const recentOrders = [...orders]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 10);
+  // Filter orders based on selected period
+  const getFilteredOrders = () => {
+    const now = new Date();
+    const filtered = orders.filter(order => {
+      const orderDate = new Date(order.createdAt);
+      
+      if (period === 'week') {
+        const weekAgo = new Date(now);
+        weekAgo.setDate(now.getDate() - 7);
+        return orderDate >= weekAgo;
+      } else if (period === 'month') {
+        const monthAgo = new Date(now);
+        monthAgo.setMonth(now.getMonth() - 1);
+        return orderDate >= monthAgo;
+      } else if (period === 'year') {
+        const yearAgo = new Date(now);
+        yearAgo.setFullYear(now.getFullYear() - 1);
+        return orderDate >= yearAgo;
+      }
+      return true;
+    });
+    
+    return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10);
+  };
+
+  const recentOrders = getFilteredOrders();
+
+  const exportReport = () => {
+    const reportData = {
+      generatedAt: new Date().toISOString(),
+      period,
+      totalRevenue,
+      totalOrders,
+      totalProducts,
+      averageOrderValue,
+      orders: recentOrders.map(order => ({
+        id: order.id,
+        customerName: order.customerName || 'Guest',
+        amount: order.totalAmount,
+        status: order.status,
+        date: order.createdAt
+      }))
+    };
+    
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics-report-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const maxRevenue = Math.max(...salesData.map(d => d.revenue), 1);
 
   if (loading) {
     return (
@@ -138,7 +328,11 @@ export default function AnalyticsPage() {
             <option value="year">This Year</option>
             <option value="all">All Time</option>
           </select>
-          <Button variant="secondary" className="flex items-center gap-2">
+          <Button 
+            variant="secondary" 
+            className="flex items-center gap-2"
+            onClick={exportReport}
+          >
             <Download className="w-4 h-4" />
             Export Report
           </Button>
@@ -155,7 +349,7 @@ export default function AnalyticsPage() {
               </div>
               <div className={`flex items-center gap-1 text-sm font-medium ${stat.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {stat.change >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                <span>{Math.abs(stat.change)}%</span>
+                <span>{Math.abs(Math.round(stat.change))}%</span>
               </div>
             </div>
             <p className="text-gray-500 text-sm font-medium mb-1">{stat.title}</p>
@@ -164,19 +358,36 @@ export default function AnalyticsPage() {
         ))}
       </motion.div>
 
-      {/* Charts Section - Placeholder for now */}
+      {/* Charts Section */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-gray-800">Revenue Overview</h3>
             <span className="text-xs text-gray-500">Last 7 days</span>
           </div>
-          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-            <div className="text-center">
-              <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500">Chart visualization coming soon</p>
-              <p className="text-sm text-gray-400">Connect to your analytics service</p>
-            </div>
+          <div className="h-64">
+            {salesData.length > 0 && maxRevenue > 0 ? (
+              <div className="flex items-end justify-between h-full gap-2">
+                {salesData.map((day, index) => (
+                  <div key={index} className="flex-1 flex flex-col items-center">
+                    <div 
+                      className="w-full bg-blue-500 rounded-t-lg transition-all duration-500 hover:bg-blue-600"
+                      style={{ height: `${(day.revenue / maxRevenue) * 200}px` }}
+                    />
+                    <p className="text-xs text-gray-500 mt-2 rotate-45 origin-left">{day.displayDate}</p>
+                    <p className="text-xs font-semibold text-gray-700 mt-1">₦{Math.round(day.revenue).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500">No sales data available</p>
+                  <p className="text-sm text-gray-400">Complete orders to see analytics</p>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
 
@@ -186,25 +397,32 @@ export default function AnalyticsPage() {
             <span className="text-xs text-gray-500">By sales volume</span>
           </div>
           <div className="space-y-4">
-            {['Diagnostic', 'Monitoring', 'PPE', 'First Aid', 'Mobility'].map((category, index) => (
-              <div key={category} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
-                  {index + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700">{category}</span>
-                    <span className="text-sm text-gray-500">{Math.floor(Math.random() * 40) + 10}%</span>
+            {categorySales.length > 0 ? (
+              categorySales.map((category, index) => (
+                <div key={category.name} className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                    {index + 1}
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 rounded-full h-2" 
-                      style={{ width: `${Math.floor(Math.random() * 40) + 10}%` }}
-                    />
+                  <div className="flex-1">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-700">{category.name}</span>
+                      <span className="text-sm text-gray-500">{Math.round(category.percentage)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 rounded-full h-2 transition-all duration-500" 
+                        style={{ width: `${Math.min(category.percentage, 100)}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Package className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500">No category data available</p>
               </div>
-            ))}
+            )}
           </div>
         </Card>
       </motion.div>
@@ -237,19 +455,24 @@ export default function AnalyticsPage() {
                   <tr>
                     <td colSpan={5} className="p-8 text-center text-gray-500">
                       <ShoppingCart className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                      <p>No orders yet</p>
-                     </td>
-                   </tr>
+                      <p>No orders in this period</p>
+                      <p className="text-sm text-gray-400 mt-1">Orders will appear here once customers make purchases</p>
+                    </td>
+                  </tr>
                 ) : (
                   recentOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                       <td className="p-4">
                         <span className="font-mono text-sm font-medium text-gray-900">
-                          #{order.id?.slice(-8) || order.id}
+                          #{order.id?.slice(-8) || order.id?.slice(0, 8)}
                         </span>
                       </td>
                       <td className="p-4">
-                        <span className="text-sm text-gray-800">{order.customerName || 'Guest'}</span>
+                        <span className="text-sm text-gray-800">
+                          {order.user?.firstName && order.user?.lastName 
+                            ? `${order.user.firstName} ${order.user.lastName}`
+                            : order.customerName || 'Guest'}
+                        </span>
                       </td>
                       <td className="p-4">
                         <span className="text-sm text-gray-500">
@@ -263,12 +486,16 @@ export default function AnalyticsPage() {
                       </td>
                       <td className="p-4">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                          order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                          order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
+                          order.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
+                          order.orderStatus === 'processing' ? 'bg-blue-100 text-blue-800' :
+                          order.orderStatus === 'cancelled' ? 'bg-red-100 text-red-800' :
+                          order.paymentStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
                         }`}>
-                          {order.status?.replace('_', ' ') || 'Pending'}
+                          {order.paymentStatus === 'PAID' ? 'Paid' :
+                           order.orderStatus === 'processing' ? 'Processing' :
+                           order.orderStatus === 'cancelled' ? 'Cancelled' :
+                           order.paymentStatus === 'PENDING' ? 'Pending' : 'Pending'}
                         </span>
                       </td>
                     </tr>

@@ -86,7 +86,6 @@ export default function Home() {
         setAccountDropdownOpen(false);
       }
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node) && mobileMenuOpen) {
-        // Don't close if clicking on the menu button
         if (!(event.target as HTMLElement).closest('.menu-button')) {
           setMobileMenuOpen(false);
         }
@@ -207,10 +206,10 @@ export default function Home() {
       {/* HEADER */}
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4">
-          {/* TOP ROW: Logo + Icons */}
+          {/* TOP ROW: Logo on LEFT - Icons on RIGHT */}
           <div className="flex items-center justify-between py-3">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-3">
+            {/* Logo - STRAIGHT, NOT WRAPPED */}
+            <Link href="/" className="flex items-center gap-3 flex-shrink-0">
               <div className="relative w-10 h-10">
                 <Image 
                   src="/images/logo.png" 
@@ -220,22 +219,22 @@ export default function Home() {
                   priority
                 />
               </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-blue-600 text-lg leading-tight">FITTRUST MEDICALS</span>
-                <span className="text-[10px] text-gray-500">Healthcare Supplies</span>
+              <div className="whitespace-nowrap">
+                <span className="font-bold text-blue-600 text-lg">FITTRUST MEDICALS</span>
+                <span className="text-[10px] text-gray-500 block">Healthcare Supplies</span>
               </div>
             </Link>
 
             {/* RIGHT Icons */}
-            <div className="flex items-center gap-2">
-              {/* Account Button - with ref for dropdown */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Account Button */}
               <div className="relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
                   className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
                 >
                   <User size={18} />
-                  <span>{isAuthenticated ? customer?.name?.split(' ')[0] || 'Account' : 'Sign In'}</span>
+                  <span className="hidden sm:inline">{isAuthenticated ? customer?.name?.split(' ')[0] || 'Account' : 'Sign In'}</span>
                   <ChevronDown size={14} />
                 </button>
               </div>
@@ -250,7 +249,7 @@ export default function Home() {
                 )}
               </Link>
 
-              {/* Mobile Menu Button */}
+              {/* Mobile Menu Button (Dotted) */}
               <button 
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 menu-button"
@@ -278,12 +277,12 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ACCOUNT DROPDOWN MENU - Appears below header on mobile (like your screenshot) */}
+      {/* ACCOUNT DROPDOWN - Appears BELOW search bar */}
       {accountDropdownOpen && (
-        <div className="absolute left-0 right-0 bg-white border-b shadow-lg z-40 md:absolute md:left-auto md:right-4 md:w-64 md:rounded-lg md:border">
+        <div className="absolute left-0 right-0 bg-white shadow-lg z-40 border-b" style={{ top: 'auto' }}>
           <div className="container mx-auto px-4 py-3">
             {isAuthenticated ? (
-              <div className="space-y-1">
+              <div className="space-y-1 max-w-sm mx-auto">
                 <div className="px-3 py-2 border-b">
                   <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
                   <p className="text-xs text-gray-500">{customer?.email}</p>
@@ -302,7 +301,7 @@ export default function Home() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-1 max-w-sm mx-auto">
                 <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
                   Sign In
                 </Link>
@@ -315,11 +314,11 @@ export default function Home() {
         </div>
       )}
 
-      {/* MOBILE MENU (Dotted Menu) - Appears below header */}
+      {/* MOBILE DOTTED MENU - Appears BELOW search bar */}
       {mobileMenuOpen && (
-        <div className="absolute left-0 right-0 bg-white border-b shadow-lg z-40 md:hidden">
+        <div className="absolute left-0 right-0 bg-white shadow-lg z-40 border-b md:hidden" style={{ top: 'auto' }}>
           <div className="container mx-auto px-4 py-3">
-            <div className="space-y-1">
+            <div className="space-y-1 max-w-sm mx-auto">
               <h3 className="font-semibold text-gray-800 px-3 py-2 text-sm border-b">Menu</h3>
               <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
                 All Products

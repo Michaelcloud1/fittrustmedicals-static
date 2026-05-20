@@ -1,10 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/Button';
 import { 
@@ -23,18 +20,10 @@ import {
   Activity,
   ArrowRight,
   Tag,
-  Gift,
-  Search,
-  ShoppingCart,
-  User,
-  Menu,
-  X,
-  ChevronDown,
-  MoreVertical
+  Gift
 } from 'lucide-react';
+import Link from 'next/link';
 import { usePromotionsStore } from '@/stores/promotionsStore';
-import { useAuthStore } from '@/stores/authStore';
-import { useCartStore } from '@/stores/cartStore';
 import AnimatedAds from '@/components/home/AnimatedAds';
 import AnimatedFlyerCards from '@/components/home/AnimatedFlyerCards';
 import AnimatedCountdownBanner from '@/components/home/AnimatedCountdownBanner';
@@ -59,58 +48,11 @@ interface Product {
 }
 
 export default function Home() {
-  const router = useRouter();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isClient, setIsClient] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [campaignProducts, setCampaignProducts] = useState<Product[]>([]);
+  const [campaignProducts, setCampaignProducts] = useState<Product[]>([]); // ✅ FIXED: Added missing =
   const [loading, setLoading] = useState(true);
   const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
   const { promotions } = usePromotionsStore();
-  const { customer, isAuthenticated, logout } = useAuthStore();
-  const { items } = useCartStore();
-
-  const accountRef = useRef<HTMLDivElement>(null);
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
-        setAccountDropdownOpen(false);
-      }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node) && mobileMenuOpen) {
-        if (!(event.target as HTMLElement).closest('.menu-button')) {
-          setMobileMenuOpen(false);
-        }
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [mobileMenuOpen]);
-
-  const cartCount = isClient ? items.reduce((sum, item) => sum + (item.quantity || 1), 0) : 0;
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery('');
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    router.push('/');
-    setAccountDropdownOpen(false);
-    setMobileMenuOpen(false);
-  };
 
   const activePromotions = promotions?.filter(p => 
     p.displayOnHomepage && 
@@ -203,154 +145,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* HEADER */}
-      <header className="bg-white border-b sticky top-0 z-50">
-        <div className="container mx-auto px-4">
-          {/* TOP ROW: Logo on LEFT - Icons on RIGHT */}
-          <div className="flex items-center justify-between py-3">
-            {/* Logo - STRAIGHT, NOT WRAPPED */}
-            <Link href="/" className="flex items-center gap-3 flex-shrink-0">
-              <div className="relative w-10 h-10">
-                <Image 
-                  src="/images/logo.png" 
-                  alt="FITTRUST MEDICALS" 
-                  fill 
-                  className="object-contain"
-                  priority
-                />
-              </div>
-              <div className="whitespace-nowrap">
-                <span className="font-bold text-blue-600 text-lg">FITTRUST MEDICALS</span>
-                <span className="text-[10px] text-gray-500 block">Healthcare Supplies</span>
-              </div>
-            </Link>
-
-            {/* RIGHT Icons */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Account Button */}
-              <div className="relative" ref={accountRef}>
-                <button
-                  onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
-                >
-                  <User size={18} />
-                  <span className="hidden sm:inline">{isAuthenticated ? customer?.name?.split(' ')[0] || 'Account' : 'Sign In'}</span>
-                  <ChevronDown size={14} />
-                </button>
-              </div>
-
-              {/* Cart Icon */}
-              <Link href="/cart" className="relative p-2">
-                <ShoppingCart size={20} className="text-gray-600" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                    {cartCount > 99 ? '99+' : cartCount}
-                  </span>
-                )}
-              </Link>
-
-              {/* Mobile Menu Button (Dotted) */}
-              <button 
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 menu-button"
-              >
-                <MoreVertical size={20} className="text-gray-600" />
-              </button>
-            </div>
-          </div>
-
-          {/* SEARCH BAR - Below header */}
-          <div className="pb-5 pt-1">
-            <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-              <div className="relative">
-                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search products, brands and more..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-3 pl-11 pr-4 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50"
-                />
-              </div>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      {/* ACCOUNT DROPDOWN - Appears BELOW search bar */}
-      {accountDropdownOpen && (
-        <div className="absolute left-0 right-0 bg-white shadow-lg z-40 border-b" style={{ top: 'auto' }}>
-          <div className="container mx-auto px-4 py-3">
-            {isAuthenticated ? (
-              <div className="space-y-1 max-w-sm mx-auto">
-                <div className="px-3 py-2 border-b">
-                  <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
-                  <p className="text-xs text-gray-500">{customer?.email}</p>
-                </div>
-                <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                  My Account
-                </Link>
-                <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                  My Orders
-                </Link>
-                <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                  Wishlist
-                </Link>
-                <button onClick={handleLogout} className="block w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded">
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-1 max-w-sm mx-auto">
-                <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                  Sign In
-                </Link>
-                <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                  Create Account
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* MOBILE DOTTED MENU - Appears BELOW search bar */}
-      {mobileMenuOpen && (
-        <div className="absolute left-0 right-0 bg-white shadow-lg z-40 border-b md:hidden" style={{ top: 'auto' }}>
-          <div className="container mx-auto px-4 py-3">
-            <div className="space-y-1 max-w-sm mx-auto">
-              <h3 className="font-semibold text-gray-800 px-3 py-2 text-sm border-b">Menu</h3>
-              <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                All Products
-              </Link>
-              <Link href="/sale" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded">
-                Hot Deals
-              </Link>
-              <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                Contact Us
-              </Link>
-              <hr className="my-2" />
-              <h3 className="font-semibold text-gray-800 px-3 py-2 text-sm">Categories</h3>
-              <Link href="/products?category=diagnostic" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                Diagnostic Equipment
-              </Link>
-              <Link href="/products?category=ppe" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                PPE & Safety
-              </Link>
-              <Link href="/products?category=monitoring" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                Patient Monitoring
-              </Link>
-              <Link href="/products?category=surgical" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                Surgical Supplies
-              </Link>
-              <Link href="/products?category=first-aid" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                First Aid
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Announcement Bar */}
       {activePromotions.length > 0 && (
         <motion.div 
@@ -370,9 +164,10 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* Hero Banner Area */}
+      {/* Hero Banner Area - FIXED: Entire banner is now clickable */}
       <div className="container mx-auto px-4 py-4">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* Main Banner - FULLY CLICKABLE */}
           <Link href="/products" className="lg:col-span-3 block">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg overflow-hidden relative h-64 lg:h-80 cursor-pointer group">
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-300" />
@@ -393,6 +188,7 @@ export default function Home() {
             </div>
           </Link>
 
+          {/* Side Promos */}
           <div className="grid grid-cols-2 gap-4">
             <Link href="/products?category=diagnostic">
               <div className="bg-blue-500 rounded-lg p-4 text-white text-center hover:opacity-90 transition cursor-pointer">

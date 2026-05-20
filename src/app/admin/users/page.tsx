@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Search, UserPlus, Mail, Ban, Trash2, Edit, X, Save, Users as UsersIcon } from 'lucide-react';
+import { Search, UserPlus, Mail, Ban, Trash2, Edit, X, Save, Users as UsersIcon, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 interface User {
@@ -23,6 +23,8 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -32,15 +34,46 @@ export default function AdminUsersPage() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch users
-  const fetchUsers = async () => {
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
+
+  // Fetch users from localStorage (since backend is having connection issues)
+  const fetchUsers = () => {
+    setLoading(true);
+    
     try {
-      setLoading(true);
-      const response = await fetch('/api/users');
-      const data = await response.json();
-      if (data.success) {
-        setUsers(data.users);
+      // Get users from localStorage
+      const storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
+      
+      // Add default admin if no users exist
+      let allUsers = [...storedUsers];
+      
+      if (allUsers.length === 0) {
+        const defaultAdmin = {
+          id: 'admin-default',
+          name: 'Super Admin',
+          email: 'admin@fittrust.com',
+          password: 'admin123',
+          role: 'admin',
+          phone: '+234 800 123 4567',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        };
+        allUsers.push(defaultAdmin);
+        localStorage.setItem('fittrust-users', JSON.stringify(allUsers));
       }
+      
+      // Format users for display
+      const formattedUsers = allUsers.map((user: any) => ({
+        id: user.id,
+        name: user.name || user.fullName || 'Unknown',
+        email: user.email,
+        role: user.role?.toLowerCase() || 'customer',
+        phone: user.phone || 'No phone',
+        status: user.status || 'active',
+        createdAt: user.createdAt || new Date().toISOString(),
+      }));
+      
+      setUsers(formattedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
@@ -50,28 +83,57 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
+    
+    // Listen for storage changes across tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'fittrust-users') {
+        fetchUsers();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Add user
+  // Add user to localStorage
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     
     try {
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+      const storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
       
-      if (response.ok) {
-        setShowAddModal(false);
-        setFormData({ name: '', email: '', password: '', role: 'staff', phone: '' });
-        fetchUsers();
-        alert('User added successfully');
-      } else {
-        alert('Failed to add user');
+      // Check if email already exists
+      if (storedUsers.some((u: any) => u.email === formData.email)) {
+        alert('User with this email already exists!');
+        setSubmitting(false);
+        return;
       }
+      
+      const newUser = {
+        id: 'user-' + Date.now(),
+        name: formData.name,
+        fullName: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        phone: formData.phone,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      };
+      
+      storedUsers.push(newUser);
+      localStorage.setItem('fittrust-users', JSON.stringify(storedUsers));
+      
+      // Also save to admin-created-users for backup
+      const adminUsers = JSON.parse(localStorage.getItem('admin-created-users') || '[]');
+      adminUsers.push(newUser);
+      localStorage.setItem('admin-created-users', JSON.stringify(adminUsers));
+      
+      setShowAddModal(false);
+      setFormData({ name: '', email: '', password: '', role: 'staff', phone: '' });
+      fetchUsers();
+      alert('User added successfully!');
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to add user');
@@ -85,35 +147,57 @@ export default function AdminUsersPage() {
     const newStatus = user.status === 'active' ? 'banned' : 'active';
     
     try {
-      const response = await fetch('/api/users', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...user, status: newStatus }),
-      });
+      const storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
+      const updatedUsers = storedUsers.map((u: any) => 
+        u.id === user.id ? { ...u, status: newStatus } : u
+      );
+      localStorage.setItem('fittrust-users', JSON.stringify(updatedUsers));
       
-      if (response.ok) {
-        fetchUsers();
-        alert(`User ${newStatus === 'active' ? 'activated' : 'banned'} successfully`);
-      }
+      // Also update admin-created-users
+      const adminUsers = JSON.parse(localStorage.getItem('admin-created-users') || '[]');
+      const updatedAdminUsers = adminUsers.map((u: any) => 
+        u.id === user.id ? { ...u, status: newStatus } : u
+      );
+      localStorage.setItem('admin-created-users', JSON.stringify(updatedAdminUsers));
+      
+      fetchUsers();
+      alert(`User ${newStatus === 'active' ? 'activated' : 'banned'} successfully`);
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to update user status');
     }
   };
 
-  // Delete user
+  // DELETE USER - Completely removes from localStorage
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+    setDeletingUserId(userId);
     
     try {
-      const response = await fetch(`/api/users?id=${userId}`, { method: 'DELETE' });
-      if (response.ok) {
-        fetchUsers();
-        alert('User deleted successfully');
-      }
+      // Get current users from localStorage
+      let storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
+      
+      // Filter out the user to delete
+      const updatedUsers = storedUsers.filter((user: any) => user.id !== userId);
+      
+      // Save back to localStorage
+      localStorage.setItem('fittrust-users', JSON.stringify(updatedUsers));
+      
+      // Also remove from admin-created-users
+      let adminUsers = JSON.parse(localStorage.getItem('admin-created-users') || '[]');
+      const updatedAdminUsers = adminUsers.filter((user: any) => user.id !== userId);
+      localStorage.setItem('admin-created-users', JSON.stringify(updatedAdminUsers));
+      
+      // Update UI immediately
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+      
+      console.log(`✅ User ${userId} deleted successfully`);
+      setShowDeleteConfirm(null);
+      alert('User deleted successfully!');
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error deleting user:', error);
       alert('Failed to delete user');
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -137,10 +221,20 @@ export default function AdminUsersPage() {
           <h1 className="text-3xl font-bold text-gray-900">Users</h1>
           <p className="text-gray-600 mt-1">Manage customer and staff accounts</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
-          <UserPlus size={20} />
-          Add User
-        </Button>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchUsers}
+            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
+            title="Refresh"
+          >
+            <RefreshCw size={18} />
+            Refresh
+          </button>
+          <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+            <UserPlus size={20} />
+            Add User
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -250,13 +344,33 @@ export default function AdminUsersPage() {
                         >
                           <Ban size={18} />
                         </button>
-                        <button 
-                          onClick={() => handleDeleteUser(user.id)}
-                          className="text-red-500 hover:text-red-700 p-1" 
-                          title="Delete User"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {user.email !== 'admin@fittrust.com' && (
+                          showDeleteConfirm === user.id ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleDeleteUser(user.id)}
+                                disabled={deletingUserId === user.id}
+                                className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                              >
+                                {deletingUserId === user.id ? '...' : 'Confirm'}
+                              </button>
+                              <button
+                                onClick={() => setShowDeleteConfirm(null)}
+                                className="px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => setShowDeleteConfirm(user.id)}
+                              className="text-red-500 hover:text-red-700 p-1" 
+                              title="Delete User"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -286,6 +400,7 @@ export default function AdminUsersPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter full name"
                 />
               </div>
               <div>
@@ -296,6 +411,7 @@ export default function AdminUsersPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter email address"
                 />
               </div>
               <div>
@@ -306,6 +422,7 @@ export default function AdminUsersPage() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter password"
                 />
               </div>
               <div>
@@ -315,9 +432,9 @@ export default function AdminUsersPage() {
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
+                  <option value="customer">Customer</option>
                   <option value="staff">Staff</option>
                   <option value="admin">Admin</option>
-                  <option value="customer">Customer</option>
                 </select>
               </div>
               <div>
@@ -327,6 +444,7 @@ export default function AdminUsersPage() {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter phone number"
                 />
               </div>
               <div className="flex gap-3 pt-4">

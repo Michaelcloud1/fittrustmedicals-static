@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -34,52 +35,77 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
+// Simple bar chart component that doesn't cause SSR issues
+const SimpleBarChart = ({ salesData, maxRevenue }: { salesData: any[]; maxRevenue: number }) => {
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  if (!isClient) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <div className="animate-pulse bg-gray-200 rounded-lg w-full h-full"></div>
+      </div>
+    );
+  }
+  
+  if (salesData.length === 0 || maxRevenue === 0) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+          <p className="text-gray-500">No sales data available</p>
+          <p className="text-sm text-gray-400">Complete orders to see analytics</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="flex items-end justify-between h-full gap-2">
+      {salesData.map((day, index) => (
+        <div key={index} className="flex-1 flex flex-col items-center">
+          <div 
+            className="w-full bg-blue-500 rounded-t-lg transition-all duration-500 hover:bg-blue-600"
+            style={{ height: `${(day.revenue / maxRevenue) * 200}px` }}
+          />
+          <p className="text-xs text-gray-500 mt-2 text-center break-words max-w-[60px]">{day.displayDate?.slice(0, 6) || day.date}</p>
+          <p className="text-xs font-semibold text-gray-700 mt-1">₦{Math.round(day.revenue).toLocaleString()}</p>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function AnalyticsPage() {
   const { products, fetchProducts } = useProductsStore();
   const { orders, fetchOrders } = useOrdersStore();
   const { customer } = useAuthStore();
   const [loading, setLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
   const [period, setPeriod] = useState('month');
   const [salesData, setSalesData] = useState<any[]>([]);
   const [categorySales, setCategorySales] = useState<{name: string; percentage: number; sales: number}[]>([]);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
+  // Mark when client-side rendering is available
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        // Fetch real data from backend
-        await Promise.all([
-          fetchProducts(),
-          fetchOrders()
-        ]);
-        
-        // Calculate category sales
-        calculateCategorySales();
-        // Generate sales chart data
-        generateSalesData();
-      } catch (error) {
-        console.error('Error loading analytics data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadData();
+    setIsClient(true);
   }, []);
 
   // Calculate category sales from orders
-  const calculateCategorySales = () => {
+  const calculateCategorySales = (ordersList: any[]) => {
     const categoryMap: { [key: string]: number } = {};
     let totalSales = 0;
     
-    orders.forEach(order => {
+    ordersList.forEach(order => {
       if (order.paymentStatus === 'PAID' || order.status === 'delivered') {
         totalSales += order.totalAmount || 0;
         
-        // Categorize based on items
-        order.items?.forEach(item => {
+        order.items?.forEach((item: any) => {
           let category = 'Other';
           const productName = item.productName?.toLowerCase() || '';
           
@@ -110,7 +136,7 @@ export default function AnalyticsPage() {
   };
 
   // Generate sales data for chart
-  const generateSalesData = () => {
+  const generateSalesData = (ordersList: any[]) => {
     const last7Days = [];
     const today = new Date();
     
@@ -119,12 +145,12 @@ export default function AnalyticsPage() {
       date.setDate(today.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
       
-      const dayOrders = orders.filter(order => {
+      const dayOrders = ordersList.filter(order => {
         const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
         return orderDate === dateStr && order.paymentStatus === 'PAID';
       });
       
-      const revenue = dayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      const revenue = dayOrders.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0);
       const count = dayOrders.length;
       
       last7Days.push({
@@ -138,6 +164,34 @@ export default function AnalyticsPage() {
     setSalesData(last7Days);
   };
 
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // Check if fetch functions exist before calling
+        if (typeof fetchProducts === 'function') {
+          await fetchProducts();
+        }
+        if (typeof fetchOrders === 'function') {
+          await fetchOrders();
+        }
+        
+        // Calculate category sales and chart data
+        const currentOrders = useOrdersStore.getState().orders;
+        if (currentOrders && currentOrders.length > 0) {
+          calculateCategorySales(currentOrders);
+          generateSalesData(currentOrders);
+        }
+      } catch (error) {
+        console.error('Error loading analytics data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [fetchProducts, fetchOrders]);
+
   const formatNaira = (price: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -147,63 +201,64 @@ export default function AnalyticsPage() {
     }).format(price || 0);
   };
 
-  // Calculate statistics from real data
-  const totalRevenue = orders.reduce((sum, order) => {
-    if (order.paymentStatus === 'PAID') {
-      return sum + (order.totalAmount || 0);
-    }
-    return sum;
-  }, 0);
+  // Calculate statistics from real data - safely
+  const totalRevenue = useMemo(() => {
+    if (!orders || !Array.isArray(orders)) return 0;
+    return orders.reduce((sum, order) => {
+      if (order.paymentStatus === 'PAID') {
+        return sum + (order.totalAmount || 0);
+      }
+      return sum;
+    }, 0);
+  }, [orders]);
   
-  const totalOrders = orders.length;
-  const totalProducts = products.filter(p => p.isActive !== false).length;
+  const totalOrders = useMemo(() => orders?.length || 0, [orders]);
+  const totalProducts = useMemo(() => {
+    if (!products || !Array.isArray(products)) return 0;
+    return products.filter(p => p.isActive !== false).length;
+  }, [products]);
   const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
   
-  // Calculate period-based changes (compare with previous period)
+  // Get period change safely
   const getPeriodChange = (current: number, previous: number) => {
     if (previous === 0) return current > 0 ? 100 : 0;
     return ((current - previous) / previous) * 100;
   };
 
-  // Get previous period revenue
   const getPreviousPeriodRevenue = () => {
+    if (!orders || !Array.isArray(orders)) return 0;
+    
     const now = new Date();
-    let previousStart: Date;
     
     if (period === 'week') {
-      previousStart = new Date(now);
-      previousStart.setDate(now.getDate() - 14);
-      const previousEnd = new Date(now);
-      previousEnd.setDate(now.getDate() - 7);
-      
+      const weekAgo = new Date(now);
+      weekAgo.setDate(now.getDate() - 7);
       return orders.reduce((sum, order) => {
         const orderDate = new Date(order.createdAt);
-        if (orderDate >= previousStart && orderDate < previousEnd && order.paymentStatus === 'PAID') {
+        if (orderDate >= weekAgo && order.paymentStatus === 'PAID') {
           return sum + (order.totalAmount || 0);
         }
         return sum;
       }, 0);
     } else if (period === 'month') {
-      previousStart = new Date(now);
-      previousStart.setMonth(now.getMonth() - 1);
-      const previousEnd = new Date(now);
-      
+      const monthAgo = new Date(now);
+      monthAgo.setMonth(now.getMonth() - 1);
       return orders.reduce((sum, order) => {
         const orderDate = new Date(order.createdAt);
-        if (orderDate >= previousStart && orderDate < previousEnd && order.paymentStatus === 'PAID') {
+        if (orderDate >= monthAgo && order.paymentStatus === 'PAID') {
           return sum + (order.totalAmount || 0);
         }
         return sum;
       }, 0);
     }
     
-    return totalRevenue * 0.7; // Fallback
+    return totalRevenue * 0.7;
   };
 
   const previousRevenue = getPreviousPeriodRevenue();
   const revenueChange = getPeriodChange(totalRevenue, previousRevenue);
-  const ordersChange = 12; // Mock for demo, can calculate similarly
-  const productsChange = products.filter(p => p.isActive).length > 0 ? 8 : 0;
+  const ordersChange = totalOrders > 0 ? 12 : 0;
+  const productsChange = totalProducts > 0 ? 8 : 0;
   const aovChange = getPeriodChange(averageOrderValue, averageOrderValue * 0.88);
 
   const stats = [
@@ -243,6 +298,8 @@ export default function AnalyticsPage() {
 
   // Filter orders based on selected period
   const getFilteredOrders = () => {
+    if (!orders || !Array.isArray(orders)) return [];
+    
     const now = new Date();
     const filtered = orders.filter(order => {
       const orderDate = new Date(order.createdAt);
@@ -267,6 +324,7 @@ export default function AnalyticsPage() {
   };
 
   const recentOrders = getFilteredOrders();
+  const maxRevenue = Math.max(...salesData.map(d => d.revenue), 1);
 
   const exportReport = () => {
     const reportData = {
@@ -294,9 +352,7 @@ export default function AnalyticsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const maxRevenue = Math.max(...salesData.map(d => d.revenue), 1);
-
-  if (loading) {
+  if (loading || !isClient) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -366,28 +422,7 @@ export default function AnalyticsPage() {
             <span className="text-xs text-gray-500">Last 7 days</span>
           </div>
           <div className="h-64">
-            {salesData.length > 0 && maxRevenue > 0 ? (
-              <div className="flex items-end justify-between h-full gap-2">
-                {salesData.map((day, index) => (
-                  <div key={index} className="flex-1 flex flex-col items-center">
-                    <div 
-                      className="w-full bg-blue-500 rounded-t-lg transition-all duration-500 hover:bg-blue-600"
-                      style={{ height: `${(day.revenue / maxRevenue) * 200}px` }}
-                    />
-                    <p className="text-xs text-gray-500 mt-2 rotate-45 origin-left">{day.displayDate}</p>
-                    <p className="text-xs font-semibold text-gray-700 mt-1">₦{Math.round(day.revenue).toLocaleString()}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <div className="text-center">
-                  <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">No sales data available</p>
-                  <p className="text-sm text-gray-400">Complete orders to see analytics</p>
-                </div>
-              </div>
-            )}
+            <SimpleBarChart salesData={salesData} maxRevenue={maxRevenue} />
           </div>
         </Card>
 

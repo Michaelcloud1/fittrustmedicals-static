@@ -16,7 +16,6 @@ import {
   ChevronDown
 } from 'lucide-react';
 
-// Helper function to calculate cart item count
 const calculateCartCount = (items: any[]) => {
   return items.reduce((total, item) => total + (item.quantity || 1), 0);
 };
@@ -31,6 +30,7 @@ export function Header() {
   const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
 
   const accountRef = useRef<HTMLDivElement>(null);
+  const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { customer, isAuthenticated, logout } = useAuthStore();
   const { items } = useCartStore();
@@ -50,7 +50,6 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -93,13 +92,27 @@ export function Header() {
     }
   };
 
+  // Mouse enter handlers for hover functionality
+  const handleMouseEnter = () => {
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+    }
+    setAccountDropdownOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setAccountDropdownOpen(false);
+    }, 200);
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
-      {/* Top Bar - Logo and Company Name on Same Line with Icons */}
+      {/* Top Bar - Logo and Icons */}
       <div className="border-b border-gray-100 bg-white">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            {/* Logo + Company Name - Same Line */}
+            {/* Logo */}
             <Link href="/" className="flex items-center gap-3 flex-shrink-0">
               <div className="relative w-10 h-10 md:w-12 md:h-12">
                 <Image
@@ -122,16 +135,21 @@ export function Header() {
 
             {/* Icons - Cart & User */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              {/* User/Login Dropdown - HIGH Z-INDEX */}
-              <div className="relative" ref={accountRef}>
+              {/* User/Login Dropdown - FIXED Z-INDEX */}
+              <div 
+                className="relative" 
+                ref={accountRef}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-                  className="p-2 rounded-lg hover:bg-gray-100 relative z-30"
+                  className="p-2 rounded-lg hover:bg-gray-100"
                 >
                   <User size={20} />
                 </button>
                 {accountDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-[200] border">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-100 z-[9999]">
                     {isAuthenticated ? (
                       <>
                         <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
@@ -188,8 +206,8 @@ export function Header() {
         </div>
       </div>
 
-      {/* SINGLE SEARCH BAR - Centered Below Logo - LOWER Z-INDEX */}
-      <div className="bg-white pb-4 pt-2 relative z-10">
+      {/* Search Bar - Centered Below Logo */}
+      <div className="bg-white pb-4 pt-2">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
             <form onSubmit={handleSearch} className="relative">
@@ -209,7 +227,7 @@ export function Header() {
         </div>
       </div>
 
-      {/* MOBILE SIDEBAR MENU - Separate from header content */}
+      {/* MOBILE SIDEBAR MENU */}
       {mobileMenuOpen && (
         <>
           <div className="fixed inset-0 bg-black/50 z-[100]" onClick={() => setMobileMenuOpen(false)} />
@@ -222,7 +240,6 @@ export function Header() {
             </div>
             
             <div className="p-4 space-y-4">
-              {/* User section */}
               {isAuthenticated ? (
                 <div className="pb-3 border-b">
                   <div className="flex items-center gap-3">

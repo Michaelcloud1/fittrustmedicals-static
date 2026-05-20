@@ -184,66 +184,68 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* HEADER - EXACTLY LIKE SCREENSHOT: ALL ON ONE LINE, SEARCH BELOW */}
+      {/* HEADER - FINAL CORRECT VERSION */}
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4">
-          {/* TOP ROW: Logo text + Icons - ALL ON SAME LINE */}
-          <div className="flex items-center justify-between py-4">
-            {/* LEFT: Logo text - PROMED + FITTRUST MEDICALS + Healthcare Supplies on ONE line */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-xs font-semibold text-gray-400 tracking-wide">PROMED</span>
-              <span className="font-bold text-blue-600 text-xl">FITTRUST MEDICALS</span>
-              <span className="text-xs text-gray-500">Healthcare Supplies</span>
-            </div>
-
-            {/* RIGHT: Icons - User, Cart, Dotted Menu - ALL ON SAME LINE */}
-            <div className="flex items-center gap-4">
-              {/* User Icon with Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                >
-                  <User size={20} className="text-gray-600" />
-                </button>
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border py-2 z-50">
-                    {isAuthenticated ? (
-                      <>
-                        <div className="px-4 py-2 border-b">
-                          <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
-                          <p className="text-xs text-gray-500">{customer?.email}</p>
-                        </div>
-                        <Link href="/account" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          My Account
-                        </Link>
-                        <Link href="/orders" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          My Orders
-                        </Link>
-                        <Link href="/wishlist" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          Wishlist
-                        </Link>
-                        <hr className="my-1" />
-                        <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                          Logout
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <Link href="/login" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          Sign In
-                        </Link>
-                        <Link href="/register" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          Create Account
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                )}
+          {/* TOP ROW: Logo Image + Text + Icons - ALL ON SAME LINE */}
+          <div className="flex items-center justify-between py-3">
+            {/* LEFT: Logo Image with text */}
+            <Link href="/" className="flex items-center gap-3">
+              <div className="relative w-10 h-10">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="FITTRUST MEDICALS" 
+                  fill 
+                  className="object-contain"
+                  priority
+                />
               </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-blue-600 text-lg leading-tight">FITTRUST MEDICALS</span>
+                <span className="text-[10px] text-gray-500">Healthcare Supplies</span>
+              </div>
+            </Link>
+
+            {/* RIGHT: Icons - Sign In + Cart + Dotted Menu - ALL ON SAME LINE */}
+            <div className="flex items-center gap-2">
+              {/* Sign In / Account */}
+              {isAuthenticated ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+                  >
+                    <User size={18} />
+                    <span>{customer?.name?.split(' ')[0] || 'Account'}</span>
+                    <ChevronDown size={14} />
+                  </button>
+                  {dropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-50">
+                      <Link href="/account" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        My Account
+                      </Link>
+                      <Link href="/orders" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        My Orders
+                      </Link>
+                      <Link href="/wishlist" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        Wishlist
+                      </Link>
+                      <hr className="my-1" />
+                      <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link href="/login" className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">
+                  <User size={18} />
+                  <span>Sign In</span>
+                </Link>
+              )}
 
               {/* Cart Icon */}
-              <Link href="/cart" className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+              <Link href="/cart" className="relative p-2">
                 <ShoppingCart size={20} className="text-gray-600" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
@@ -252,27 +254,27 @@ export default function Home() {
                 )}
               </Link>
 
-              {/* Dotted Menu Icon (⋮) */}
+              {/* Dotted Menu Icon (⋮) - Mobile only */}
               <button 
                 onClick={() => setMobileMenuOpen(true)}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                className="p-2 md:hidden"
               >
                 <MoreVertical size={20} className="text-gray-600" />
               </button>
             </div>
           </div>
 
-          {/* SEARCH BAR - CENTERED BELOW, NO OVERLAP */}
-          <div className="pb-5">
+          {/* SEARCH BAR - FULL WIDTH, CENTERED, BELOW EVERYTHING - NO OVERLAP */}
+          <div className="pb-5 pt-1">
             <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
               <div className="relative">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search products, brands and more..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-2.5 pl-10 pr-4 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50"
+                  className="w-full py-3 pl-11 pr-4 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50"
                 />
               </div>
             </form>

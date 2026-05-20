@@ -36,17 +36,34 @@ export default function AdminUsersPage() {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
-  // Fetch users from localStorage (since backend is having connection issues)
+  // Fetch users from ALL localStorage sources
   const fetchUsers = () => {
     setLoading(true);
     
     try {
-      // Get users from localStorage
+      // Get users from ALL possible storage locations
       const storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
+      const registeredUsers = JSON.parse(localStorage.getItem('registered-users') || '[]');
+      const adminUsers = JSON.parse(localStorage.getItem('admin-created-users') || '[]');
+      
+      // Combine all users from different sources
+      let allUsers: any[] = [...storedUsers];
+      
+      // Add from registered-users if not already present
+      registeredUsers.forEach((user: any) => {
+        if (!allUsers.some((u: any) => u.email === user.email)) {
+          allUsers.push(user);
+        }
+      });
+      
+      // Add from admin-created-users if not already present
+      adminUsers.forEach((user: any) => {
+        if (!allUsers.some((u: any) => u.email === user.email)) {
+          allUsers.push(user);
+        }
+      });
       
       // Add default admin if no users exist
-      let allUsers = [...storedUsers];
-      
       if (allUsers.length === 0) {
         const defaultAdmin = {
           id: 'admin-default',
@@ -62,8 +79,13 @@ export default function AdminUsersPage() {
         localStorage.setItem('fittrust-users', JSON.stringify(allUsers));
       }
       
+      // Remove duplicates by email
+      const uniqueUsers = allUsers.filter((user, index, self) => 
+        index === self.findIndex((u: any) => u.email === user.email)
+      );
+      
       // Format users for display
-      const formattedUsers = allUsers.map((user: any) => ({
+      const formattedUsers = uniqueUsers.map((user: any) => ({
         id: user.id,
         name: user.name || user.fullName || 'Unknown',
         email: user.email,
@@ -74,6 +96,10 @@ export default function AdminUsersPage() {
       }));
       
       setUsers(formattedUsers);
+      
+      // Sync all users back to main storage
+      localStorage.setItem('fittrust-users', JSON.stringify(uniqueUsers));
+      
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
@@ -86,7 +112,7 @@ export default function AdminUsersPage() {
     
     // Listen for storage changes across tabs
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'fittrust-users') {
+      if (e.key === 'fittrust-users' || e.key === 'registered-users' || e.key === 'admin-created-users') {
         fetchUsers();
       }
     };
@@ -122,10 +148,14 @@ export default function AdminUsersPage() {
         createdAt: new Date().toISOString(),
       };
       
+      // Save to ALL storage locations
       storedUsers.push(newUser);
       localStorage.setItem('fittrust-users', JSON.stringify(storedUsers));
       
-      // Also save to admin-created-users for backup
+      const registeredUsers = JSON.parse(localStorage.getItem('registered-users') || '[]');
+      registeredUsers.push(newUser);
+      localStorage.setItem('registered-users', JSON.stringify(registeredUsers));
+      
       const adminUsers = JSON.parse(localStorage.getItem('admin-created-users') || '[]');
       adminUsers.push(newUser);
       localStorage.setItem('admin-created-users', JSON.stringify(adminUsers));
@@ -147,18 +177,15 @@ export default function AdminUsersPage() {
     const newStatus = user.status === 'active' ? 'banned' : 'active';
     
     try {
-      const storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
-      const updatedUsers = storedUsers.map((u: any) => 
-        u.id === user.id ? { ...u, status: newStatus } : u
-      );
-      localStorage.setItem('fittrust-users', JSON.stringify(updatedUsers));
+      const locations = ['fittrust-users', 'registered-users', 'admin-created-users'];
       
-      // Also update admin-created-users
-      const adminUsers = JSON.parse(localStorage.getItem('admin-created-users') || '[]');
-      const updatedAdminUsers = adminUsers.map((u: any) => 
-        u.id === user.id ? { ...u, status: newStatus } : u
-      );
-      localStorage.setItem('admin-created-users', JSON.stringify(updatedAdminUsers));
+      locations.forEach(location => {
+        const stored = JSON.parse(localStorage.getItem(location) || '[]');
+        const updated = stored.map((u: any) => 
+          u.id === user.id ? { ...u, status: newStatus } : u
+        );
+        localStorage.setItem(location, JSON.stringify(updated));
+      });
       
       fetchUsers();
       alert(`User ${newStatus === 'active' ? 'activated' : 'banned'} successfully`);
@@ -168,24 +195,18 @@ export default function AdminUsersPage() {
     }
   };
 
-  // DELETE USER - Completely removes from localStorage
+  // DELETE USER - Completely removes from all storage
   const handleDeleteUser = async (userId: string) => {
     setDeletingUserId(userId);
     
     try {
-      // Get current users from localStorage
-      let storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
+      const locations = ['fittrust-users', 'registered-users', 'admin-created-users'];
       
-      // Filter out the user to delete
-      const updatedUsers = storedUsers.filter((user: any) => user.id !== userId);
-      
-      // Save back to localStorage
-      localStorage.setItem('fittrust-users', JSON.stringify(updatedUsers));
-      
-      // Also remove from admin-created-users
-      let adminUsers = JSON.parse(localStorage.getItem('admin-created-users') || '[]');
-      const updatedAdminUsers = adminUsers.filter((user: any) => user.id !== userId);
-      localStorage.setItem('admin-created-users', JSON.stringify(updatedAdminUsers));
+      locations.forEach(location => {
+        const stored = JSON.parse(localStorage.getItem(location) || '[]');
+        const updated = stored.filter((user: any) => user.id !== userId);
+        localStorage.setItem(location, JSON.stringify(updated));
+      });
       
       // Update UI immediately
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
@@ -301,7 +322,7 @@ export default function AdminUsersPage() {
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     No users found
-                   </td>
+                  </td>
                  </tr>
               ) : (
                 filteredUsers.map((user) => (

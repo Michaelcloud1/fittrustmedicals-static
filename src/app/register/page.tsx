@@ -2,232 +2,188 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
-import { Mail, Lock, Eye, EyeOff, Check, X } from 'lucide-react';
-import Link from 'next/link';
-import { authService } from '@/services/authService';
-import { validateEmail } from '@/lib/utils';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { register } = useAuthStore();
+  
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
+    phone: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [agreeTerms, setAgreeTerms] = useState(false);
-
-  const passwordStrength = {
-    hasUpperCase: /[A-Z]/.test(formData.password),
-    hasLowerCase: /[a-z]/.test(formData.password),
-    hasNumber: /\d/.test(formData.password),
-    hasSpecialChar: /[!@#$%^&*]/.test(formData.password),
-    isLongEnough: formData.password.length >= 8,
-  };
-
-  const isPasswordStrong = Object.values(passwordStrength).filter(Boolean).length >= 4;
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    
+    if (!formData.fullName || !formData.email || !formData.password) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     setLoading(true);
+    setError('');
 
     try {
-      if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-        throw new Error('Please fill in all fields');
-      }
-
-      if (!validateEmail(formData.email)) {
-        throw new Error('Please enter a valid email address');
-      }
-
-      if (!isPasswordStrong) {
-        throw new Error('Password does not meet strength requirements');
-      }
-
-      if (formData.password !== formData.confirmPassword) {
-        throw new Error('Passwords do not match');
-      }
-
-      if (!agreeTerms) {
-        throw new Error('Please agree to the terms and conditions');
-      }
-
-      await authService.register({
+      // Register in auth store
+      const success = await register({
+        name: formData.fullName,
+        fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
-        confirmPassword: formData.confirmPassword,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        phone: formData.phone,
+        role: 'customer', // Always customer for new registrations
       });
-
-      router.push('/');
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+      
+      if (success) {
+        // ALSO save to localStorage directly as backup
+        const existingUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
+        
+        // Check if user already exists
+        if (!existingUsers.some((u: any) => u.email === formData.email)) {
+          const newUser = {
+            id: 'user-' + Date.now(),
+            name: formData.fullName,
+            fullName: formData.fullName,
+            email: formData.email,
+            password: formData.password,
+            phone: formData.phone || '',
+            role: 'customer',
+            status: 'active',
+            createdAt: new Date().toISOString(),
+          };
+          existingUsers.push(newUser);
+          localStorage.setItem('fittrust-users', JSON.stringify(existingUsers));
+          
+          // Also save to registered-users
+          const registeredUsers = JSON.parse(localStorage.getItem('registered-users') || '[]');
+          registeredUsers.push(newUser);
+          localStorage.setItem('registered-users', JSON.stringify(registeredUsers));
+        }
+        
+        router.push('/');
+      } else {
+        setError('Registration failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-blue-600 mb-2">🏥 Fittrustmedicals</h1>
-          <p className="text-gray-600">Create your account</p>
+          <h1 className="text-3xl font-bold text-blue-600">FITTRUST MEDICALS</h1>
+          <p className="text-gray-500 text-sm">Healthcare Supplies</p>
+        </div>
+        
+        <div className="bg-white py-8 px-6 shadow rounded-lg sm:px-10 border border-gray-200">
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
+            Create your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Or{' '}
+            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+              sign in to existing account
+            </Link>
+          </p>
         </div>
 
-        <Card className="space-y-6">
-          {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="First Name"
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleInputChange}
-                placeholder="John"
-                required
-              />
-              <Input
-                label="Last Name"
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleInputChange}
-                placeholder="Doe"
-                required
-              />
-            </div>
-
-            <Input
-              label="Email Address"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              icon={<Mail size={20} />}
-              placeholder="you@example.com"
-              required
-            />
-
-            <div className="relative">
-              <Input
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                icon={<Lock size={20} />}
-                placeholder="Enter your password"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-10 text-gray-500 hover:text-gray-700"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-
-            {formData.password && (
-              <div className="bg-gray-50 p-3 rounded-lg space-y-2">
-                <p className="text-xs font-medium text-gray-700">Password requirements:</p>
-                <ul className="space-y-1 text-xs">
-                  <li className="flex items-center gap-2">
-                    {passwordStrength.hasUpperCase ? <Check size={14} className="text-green-600" /> : <X size={14} className="text-red-600" />}
-                    <span>Uppercase letter</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    {passwordStrength.hasLowerCase ? <Check size={14} className="text-green-600" /> : <X size={14} className="text-red-600" />}
-                    <span>Lowercase letter</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    {passwordStrength.hasNumber ? <Check size={14} className="text-green-600" /> : <X size={14} className="text-red-600" />}
-                    <span>Number</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    {passwordStrength.hasSpecialChar ? <Check size={14} className="text-green-600" /> : <X size={14} className="text-red-600" />}
-                    <span>Special character (!@#$%)</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    {passwordStrength.isLongEnough ? <Check size={14} className="text-green-600" /> : <X size={14} className="text-red-600" />}
-                    <span>At least 8 characters</span>
-                  </li>
-                </ul>
-              </div>
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100">
+            {error && (
+              <Alert type="error" message={error} className="mb-4" onClose={() => setError('')} />
             )}
 
-            <div className="relative">
-              <Input
-                label="Confirm Password"
-                type={showConfirmPassword ? 'text' : 'password'}
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                placeholder="Confirm your password"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-10 text-gray-500 hover:text-gray-700"
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-
-            {formData.confirmPassword && (
-              <div className="text-sm">
-                {formData.password === formData.confirmPassword ? (
-                  <p className="text-green-600 flex items-center gap-2"><Check size={16} /> Passwords match</p>
-                ) : (
-                  <p className="text-red-600 flex items-center gap-2"><X size={16} /> Passwords do not match</p>
-                )}
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              <div>
+                <Input
+                  label="Full Name *"
+                  type="text"
+                  required
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  placeholder="Enter your full name"
+                  className="w-full"
+                />
               </div>
-            )}
 
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreeTerms}
-                onChange={(e) => setAgreeTerms(e.target.checked)}
-                className="mt-1 rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">
-                I agree to the <Link href="/terms" className="text-blue-600 hover:underline">Terms & Conditions</Link> and{' '}
-                <Link href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</Link>
-              </span>
-            </label>
+              <div>
+                <Input
+                  label="Email address *"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Enter your email"
+                  className="w-full"
+                />
+              </div>
 
-            <Button fullWidth size="lg" isLoading={loading} type="submit" disabled={!isPasswordStrong || !agreeTerms}>
-              Create Account
-            </Button>
-          </form>
+              <div>
+                <Input
+                  label="Phone number"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="Enter your phone number"
+                  className="w-full"
+                />
+              </div>
 
-          <p className="text-center text-gray-600">
-            Already have an account?{' '}
-            <Link href="/login" className="text-blue-600 hover:underline font-medium">Sign in</Link>
-          </p>
-        </Card>
+              <div>
+                <Input
+                  label="Password *"
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Create a password (min 6 characters)"
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <Input
+                  label="Confirm Password *"
+                  type="password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  placeholder="Confirm your password"
+                  className="w-full"
+                />
+              </div>
+
+              <Button type="submit" fullWidth isLoading={loading}>
+                Create Account
+              </Button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -24,7 +24,8 @@ import {
   AlertTriangle,
   Wallet,
   Menu,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -54,8 +55,8 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   
-  // Get user data from auth store
   const { 
     isAuthenticated, 
     isAdmin, 
@@ -64,7 +65,7 @@ export default function AdminLayout({
     getInventoryAlerts, 
     getUnreadCount, 
     wallet,
-    customer  // ADD THIS - to get logged-in user data
+    customer
   } = useAuthStore();
 
   const inventoryAlertCount = getInventoryAlerts().filter(a => a.status === 'low' || a.status === 'out').length;
@@ -75,7 +76,6 @@ export default function AdminLayout({
   const userEmail = customer?.email || 'admin@fittrust.com';
   const userInitial = userName.charAt(0).toUpperCase();
 
-  // Check if mobile on mount and on resize
   useEffect(() => {
     const checkMobile = () => {
       if (window.innerWidth >= 1024) {
@@ -94,10 +94,16 @@ export default function AdminLayout({
     }
   }, [isAuthenticated, isAdmin, _hasHydrated, router]);
 
-  // Close mobile menu when route changes
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+    setMobileMenuOpen(false);
+    setUserDropdownOpen(false);
+  };
 
   if (!_hasHydrated || !isAuthenticated || !isAdmin) {
     return (
@@ -107,16 +113,8 @@ export default function AdminLayout({
     );
   }
 
-  const handleLogout = () => {
-    logout();
-    router.push('/');
-    setMobileMenuOpen(false);
-  };
-
-  // Sidebar content component (reused for both mobile and desktop)
   const SidebarContent = () => (
     <>
-      {/* Sidebar Header */}
       <div className="p-4 sm:p-6 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
         <div className="flex items-center space-x-3">
           <motion.div 
@@ -133,7 +131,6 @@ export default function AdminLayout({
         </div>
       </div>
       
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 sm:py-6 px-2 sm:px-4 space-y-1">
         {sidebarItems.map((item, index) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -180,7 +177,6 @@ export default function AdminLayout({
         })}
       </nav>
 
-      {/* Footer Links */}
       <div className="p-3 sm:p-4 border-t border-gray-100 space-y-1 sm:space-y-2">
         <Link 
           href="/"
@@ -204,16 +200,15 @@ export default function AdminLayout({
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Desktop Sidebar - hidden on mobile */}
-      <aside className={`hidden lg:flex lg:w-64 xl:w-72 bg-white shadow-xl flex-col z-20 transition-all duration-300`}>
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex lg:w-64 xl:w-72 bg-white shadow-xl flex-col z-20 transition-all duration-300">
         <SidebarContent />
       </aside>
 
-      {/* Mobile Sidebar - slide out menu */}
+      {/* Mobile Sidebar */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
-            {/* Overlay */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -221,8 +216,6 @@ export default function AdminLayout({
               onClick={() => setMobileMenuOpen(false)}
               className="fixed inset-0 bg-black/50 z-40 lg:hidden"
             />
-            
-            {/* Slide out menu */}
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
@@ -246,23 +239,17 @@ export default function AdminLayout({
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
+      {/* Main Content - ADMIN ONLY HEADER (NO HOMEPAGE HEADER) */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile Header - with hamburger menu */}
+        {/* ADMIN HEADER - Clean and simple for admin dashboard */}
         <header className="bg-white shadow-sm px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-center sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            {/* Mobile Menu Button */}
             <button 
               onClick={() => setMobileMenuOpen(true)}
               className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <Menu className="w-5 h-5 text-gray-600" />
             </button>
-            
-            <div className="lg:hidden">
-              <h2 className="font-bold text-blue-600 text-sm">Fittrustmedicals</h2>
-              <p className="text-[10px] text-gray-500">Admin</p>
-            </div>
             
             <div className="hidden lg:block">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
@@ -275,7 +262,6 @@ export default function AdminLayout({
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Mobile Title (shows current page) */}
             <div className="lg:hidden text-right">
               <h1 className="text-sm font-semibold text-gray-800">
                 {sidebarItems.find(item => pathname === item.href || pathname.startsWith(`${item.href}/`))?.label || 'Dashboard'}
@@ -285,7 +271,7 @@ export default function AdminLayout({
               </p>
             </div>
 
-            {/* Wallet Balance - hidden on very small screens */}
+            {/* Wallet Balance */}
             <Link 
               href="/admin/wallet"
               className="hidden xs:flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors"
@@ -304,15 +290,38 @@ export default function AdminLayout({
               )}
             </button>
             
-            {/* Admin Avatar - NOW USING LOGGED-IN USER DATA */}
-            <div className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-6 border-l border-gray-200">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg text-sm sm:text-base">
-                {userInitial}
-              </div>
-              <div className="hidden sm:block">
-                <p className="font-medium text-gray-800 text-sm">{userName}</p>
-                <p className="text-xs text-gray-500">{userEmail}</p>
-              </div>
+            {/* Admin User Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-6 border-l border-gray-200"
+              >
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg text-sm sm:text-base">
+                  {userInitial}
+                </div>
+                <div className="hidden sm:block text-left">
+                  <p className="font-medium text-gray-800 text-sm">{userName}</p>
+                  <p className="text-xs text-gray-500">{userEmail}</p>
+                </div>
+                <ChevronDown size={16} className="text-gray-400 hidden sm:block" />
+              </button>
+
+              {/* User Dropdown Menu */}
+              {userDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border py-1 z-50">
+                  <div className="px-4 py-2 border-b">
+                    <p className="text-sm font-semibold text-gray-800">{userName}</p>
+                    <p className="text-xs text-gray-500">{userEmail}</p>
+                  </div>
+                  <Link href="/admin/profile" onClick={() => setUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                    Profile Settings
+                  </Link>
+                  <hr className="my-1" />
+                  <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

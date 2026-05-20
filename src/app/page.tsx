@@ -29,7 +29,8 @@ import {
   User,
   Menu,
   X,
-  ChevronDown
+  ChevronDown,
+  MoreVertical
 } from 'lucide-react';
 import { usePromotionsStore } from '@/stores/promotionsStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -60,7 +61,7 @@ interface Product {
 export default function Home() {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -88,7 +89,7 @@ export default function Home() {
   const handleLogout = () => {
     logout();
     router.push('/');
-    setUserDropdownOpen(false);
+    setDropdownOpen(false);
     setMobileMenuOpen(false);
   };
 
@@ -183,83 +184,86 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* HEADER - EXACTLY LIKE YOUR SCREENSHOT */}
+      {/* HEADER - EXACTLY LIKE SCREENSHOT: ALL ON ONE LINE, SEARCH BELOW */}
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4">
-          {/* Top row: Logo + User Dropdown */}
+          {/* TOP ROW: Logo text + Icons - ALL ON SAME LINE */}
           <div className="flex items-center justify-between py-4">
-            {/* Logo - Left */}
-            <Link href="/" className="flex items-center gap-2">
-              <div className="relative w-8 h-8">
-                <Image src="/images/logo.png" alt="Fittrust" fill className="object-contain" />
-              </div>
-              <div>
-                <div className="font-bold text-blue-600 text-lg">FITTRUST MEDICALS</div>
-                <div className="text-xs text-gray-500">Healthcare Supplies</div>
-              </div>
-            </Link>
+            {/* LEFT: Logo text - PROMED + FITTRUST MEDICALS + Healthcare Supplies on ONE line */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-xs font-semibold text-gray-400 tracking-wide">PROMED</span>
+              <span className="font-bold text-blue-600 text-xl">FITTRUST MEDICALS</span>
+              <span className="text-xs text-gray-500">Healthcare Supplies</span>
+            </div>
 
-            {/* User Dropdown - Right */}
-            <div className="relative">
-              <button
-                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center gap-2 text-gray-700 hover:text-blue-600"
+            {/* RIGHT: Icons - User, Cart, Dotted Menu - ALL ON SAME LINE */}
+            <div className="flex items-center gap-4">
+              {/* User Icon with Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <User size={20} className="text-gray-600" />
+                </button>
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border py-2 z-50">
+                    {isAuthenticated ? (
+                      <>
+                        <div className="px-4 py-2 border-b">
+                          <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
+                          <p className="text-xs text-gray-500">{customer?.email}</p>
+                        </div>
+                        <Link href="/account" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          My Account
+                        </Link>
+                        <Link href="/orders" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          My Orders
+                        </Link>
+                        <Link href="/wishlist" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Wishlist
+                        </Link>
+                        <hr className="my-1" />
+                        <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                          Logout
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/login" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Sign In
+                        </Link>
+                        <Link href="/register" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                          Create Account
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Cart Icon */}
+              <Link href="/cart" className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <ShoppingCart size={20} className="text-gray-600" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Dotted Menu Icon (⋮) */}
+              <button 
+                onClick={() => setMobileMenuOpen(true)}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
               >
-                <User size={18} />
-                <span className="text-sm font-medium">
-                  {isAuthenticated ? customer?.name?.split(' ')[0] || 'Account' : 'Sign In'}
-                </span>
-                <ChevronDown size={14} />
+                <MoreVertical size={20} className="text-gray-600" />
               </button>
-
-              {userDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border py-2 z-50">
-                  {isAuthenticated ? (
-                    <>
-                      <div className="px-4 py-2 border-b">
-                        <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
-                        <p className="text-xs text-gray-500">{customer?.email}</p>
-                      </div>
-                      <Link href="/dashboard" onClick={() => setUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                        Dashboard &gt;
-                      </Link>
-                      <Link href="/orders" onClick={() => setUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                        My Orders &gt;
-                      </Link>
-                      <Link href="/addresses" onClick={() => setUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                        Addresses &gt;
-                      </Link>
-                      <Link href="/wishlist" onClick={() => setUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                        Wishlist &gt;
-                      </Link>
-                      <Link href="/notifications" onClick={() => setUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                        Notifications &gt;
-                      </Link>
-                      <Link href="/profile-settings" onClick={() => setUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                        Profile Settings &gt;
-                      </Link>
-                      <hr className="my-1" />
-                      <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                        Logout
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <Link href="/login" onClick={() => setUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                        Sign In
-                      </Link>
-                      <Link href="/register" onClick={() => setUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                        Create Account
-                      </Link>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Search Bar - Centered BELOW */}
-          <div className="pb-4">
+          {/* SEARCH BAR - CENTERED BELOW, NO OVERLAP */}
+          <div className="pb-5">
             <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
               <div className="relative">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -268,13 +272,64 @@ export default function Home() {
                   placeholder="Search products, brands and more..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-2.5 pl-10 pr-4 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                  className="w-full py-2.5 pl-10 pr-4 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50"
                 />
               </div>
             </form>
           </div>
         </div>
       </header>
+
+      {/* MOBILE SIDEBAR MENU */}
+      {mobileMenuOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[100]" onClick={() => setMobileMenuOpen(false)} />
+          <div className="fixed right-0 top-0 bottom-0 w-80 bg-white z-[101] shadow-xl overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+              <span className="font-bold text-blue-600">Menu</span>
+              <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-lg hover:bg-gray-100">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {isAuthenticated ? (
+                <div className="pb-3 border-b">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">{customer?.name}</div>
+                      <button onClick={handleLogout} className="text-xs text-red-600">Logout</button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2 pb-3 border-b">
+                  <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full bg-blue-600 text-white text-center py-2 rounded-md text-sm font-semibold">
+                    Sign In
+                  </Link>
+                  <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="block w-full border border-blue-600 text-blue-600 text-center py-2 rounded-md text-sm font-semibold">
+                    Create Account
+                  </Link>
+                </div>
+              )}
+              <div className="pt-3 border-t">
+                <h3 className="font-semibold text-gray-800 mb-2 text-sm">Quick Links</h3>
+                <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
+                  All Products
+                </Link>
+                <Link href="/sale" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-red-600 hover:text-red-700 rounded-lg">
+                  Hot Deals
+                </Link>
+                <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
+                  Contact Us
+                </Link>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Announcement Bar */}
       {activePromotions.length > 0 && (

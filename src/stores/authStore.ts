@@ -22,9 +22,6 @@ interface AuthStore {
   // ... (keep all your other method signatures)
   
   setHydrated: (hydrated: boolean) => void;
-  
-  // NEW: Fetch user role from backend
-  fetchUserRole: (email: string) => Promise<{ role: string; userData: any }>;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -50,95 +47,28 @@ export const useAuthStore = create<AuthStore>()(
 
       setHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
 
-      // NEW: Fetch user role from backend API
-      fetchUserRole: async (email: string) => {
-        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
-        
-        try {
-          // Try to fetch user from backend
-          const response = await fetch(`${BACKEND_URL}/api/users?email=${encodeURIComponent(email)}`);
-          if (response.ok) {
-            const users = await response.json();
-            const user = users.find((u: any) => u.email === email);
-            if (user) {
-              return { role: user.role || 'CUSTOMER', userData: user };
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch user role from backend:', error);
-        }
-        
-        return { role: 'CUSTOMER', userData: null };
-      },
-
       login: async (email, password) => {
-        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
+        // STEP 1: FIRST check localStorage for registered users
+        const storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
+        const matchedUser = storedUsers.find((u: any) => u.email === email && u.password === password);
         
-        try {
-          // Call your actual backend login endpoint
-          const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const userRole = data.user?.role || data.role || 'CUSTOMER';
-            const userData = data.user || data;
-            
-            // Create customer profile based on role
-            const customerProfile: CustomerProfile = {
-              id: userData.id || 'user-' + Date.now(),
-              name: userData.name || userData.firstName ? `${userData.firstName} ${userData.lastName || ''}` : email.split('@')[0],
-              email: email,
-              phone: userData.phone || '',
-              role: userRole.toLowerCase(),
-              addresses: [],
-              wishlist: [],
-              notifications: [],
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            
-            // Set store state based on role
-            const isAdmin = userRole.toLowerCase() === 'admin';
-            const isStaff = userRole.toLowerCase() === 'staff';
-            
-            set({
-              isAuthenticated: true,
-              isAdmin: isAdmin,
-              isStaff: isStaff,
-              customer: customerProfile,
-            });
-            
-            console.log('Login successful. Role:', userRole, 'isAdmin:', isAdmin, 'isStaff:', isStaff);
-            return true;
-          }
-        } catch (error) {
-          console.error('Backend login error:', error);
-        }
-        
-        // FALLBACK: For development/testing - check against registered users in localStorage
-        // This allows admin users created in the admin panel to login
-        const registeredUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
-        const foundUser = registeredUsers.find((u: any) => u.email === email && u.password === password);
-        
-        if (foundUser) {
-          const userRole = foundUser.role?.toLowerCase() || 'customer';
+        if (matchedUser) {
+          console.log('✅ User found in localStorage:', matchedUser);
+          
+          const userRole = matchedUser.role?.toLowerCase() || 'customer';
           const isAdmin = userRole === 'admin';
           const isStaff = userRole === 'staff';
           
           const customerProfile: CustomerProfile = {
-            id: foundUser.id || 'user-' + Date.now(),
-            name: foundUser.fullName || foundUser.name || email.split('@')[0],
+            id: matchedUser.id,
+            name: matchedUser.name || matchedUser.fullName || email.split('@')[0],
             email: email,
-            phone: foundUser.phone || '',
+            phone: matchedUser.phone || '',
             role: userRole,
             addresses: [],
             wishlist: [],
             notifications: [],
-            createdAt: new Date().toISOString(),
+            createdAt: matchedUser.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
           
@@ -149,15 +79,59 @@ export const useAuthStore = create<AuthStore>()(
             customer: customerProfile,
           });
           
-          console.log('Local user login. Role:', userRole);
+          console.log('Login successful. Role:', userRole, 'isAdmin:', isAdmin, 'isStaff:', isStaff);
           return true;
         }
         
-        // FINAL FALLBACK: Hardcoded admin/staff for testing
+        // STEP 2: If not in localStorage, try backend API
+        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
+        
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const userRole = data.user?.role || data.role || 'CUSTOMER';
+            const isAdmin = userRole.toLowerCase() === 'admin';
+            const isStaff = userRole.toLowerCase() === 'staff';
+            
+            const customerProfile: CustomerProfile = {
+              id: data.user?.id || 'user-' + Date.now(),
+              name: data.user?.name || data.user?.fullName || email.split('@')[0],
+              email: email,
+              phone: data.user?.phone || '',
+              role: userRole.toLowerCase(),
+              addresses: [],
+              wishlist: [],
+              notifications: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            
+            set({
+              isAuthenticated: true,
+              isAdmin: isAdmin,
+              isStaff: isStaff,
+              customer: customerProfile,
+            });
+            
+            console.log('Backend login successful. Role:', userRole);
+            return true;
+          }
+        } catch (error) {
+          console.error('Backend login error:', error);
+        }
+        
+        // STEP 3: ONLY use hardcoded credentials as LAST RESORT (for testing only)
+        // Remove this in production!
         if (email === 'admin@fittrust.com' && password === 'admin123') {
           const adminProfile: CustomerProfile = {
             id: 'admin-1',
-            name: 'Administrator',
+            name: 'Super Admin',
             email: email,
             phone: '+234 800 123 4567',
             role: 'admin',
@@ -200,70 +174,42 @@ export const useAuthStore = create<AuthStore>()(
           return true;
         }
         
+        console.log('Login failed: No matching user found');
         return false;
       },
 
       register: async (data) => {
-        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
+        const storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
         
-        try {
-          // Try to register via backend
-          const response = await fetch(`${BACKEND_URL}/api/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            const userRole = result.user?.role || data.role || 'CUSTOMER';
-            
-            const newCustomer: CustomerProfile = {
-              id: result.user?.id || 'cust-' + Date.now(),
-              name: data.fullName || data.name || data.email.split('@')[0],
-              email: data.email,
-              phone: data.phone || '',
-              role: userRole.toLowerCase(),
-              addresses: [],
-              wishlist: [],
-              notifications: [],
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            
-            set({
-              isAuthenticated: true,
-              isAdmin: userRole.toLowerCase() === 'admin',
-              isStaff: userRole.toLowerCase() === 'staff',
-              customer: newCustomer,
-            });
-            
-            return true;
-          }
-        } catch (error) {
-          console.error('Backend registration error:', error);
+        // Check if email already exists
+        if (storedUsers.some((u: any) => u.email === data.email)) {
+          console.log('User already exists');
+          return false;
         }
         
-        // FALLBACK: Store user in localStorage for demo
-        const registeredUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
         const userRole = data.role?.toLowerCase() || 'customer';
         
         const newUser = {
           id: 'user-' + Date.now(),
+          name: data.fullName || data.name || data.email.split('@')[0],
           fullName: data.fullName || data.name,
           email: data.email,
           password: data.password,
-          phone: data.phone,
+          phone: data.phone || '',
           role: userRole,
+          status: 'active',
           createdAt: new Date().toISOString(),
         };
         
-        registeredUsers.push(newUser);
-        localStorage.setItem('fittrust-users', JSON.stringify(registeredUsers));
+        storedUsers.push(newUser);
+        localStorage.setItem('fittrust-users', JSON.stringify(storedUsers));
         
-        const newCustomer: CustomerProfile = {
+        const isAdmin = userRole === 'admin';
+        const isStaff = userRole === 'staff';
+        
+        const customerProfile: CustomerProfile = {
           id: newUser.id,
-          name: newUser.fullName || data.email.split('@')[0],
+          name: newUser.name,
           email: data.email,
           phone: data.phone || '',
           role: userRole,
@@ -276,11 +222,12 @@ export const useAuthStore = create<AuthStore>()(
         
         set({
           isAuthenticated: true,
-          isAdmin: userRole === 'admin',
-          isStaff: userRole === 'staff',
-          customer: newCustomer,
+          isAdmin: isAdmin,
+          isStaff: isStaff,
+          customer: customerProfile,
         });
         
+        console.log('Registration successful. Role:', userRole);
         return true;
       },
 
@@ -295,8 +242,8 @@ export const useAuthStore = create<AuthStore>()(
         });
       },
 
-      // ... (keep all your other existing methods: updateProfile, updatePassword, addAddress, etc.)
-      // I'm omitting them for brevity, but you must keep ALL your existing methods below this line
+      // ... (keep all your other existing methods: updateProfile, addAddress, etc.)
+      // Make sure to copy all the other methods from your original authStore.ts
       
       updateProfile: (updates) => {
         set((state) => ({

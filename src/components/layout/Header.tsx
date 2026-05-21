@@ -90,7 +90,7 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
       <div className="border-b border-gray-100 bg-white">
         <div className="container mx-auto px-4 py-3">
-          {/* DESKTOP HEADER */}
+          {/* DESKTOP HEADER - visible on md and up */}
           <div className="hidden md:flex items-center justify-between gap-6">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 flex-shrink-0">
@@ -183,10 +183,10 @@ export function Header() {
             </div>
           </div>
 
-          {/* MOBILE HEADER - Simple and Clean */}
+          {/* MOBILE HEADER - ONLY visible on mobile (md:hidden) */}
           <div className="md:hidden">
-            {/* Row 1: Logo and Menu Button */}
             <div className="flex items-center justify-between">
+              {/* Logo - Mobile */}
               <Link href="/" className="flex items-center gap-2">
                 <div className="relative w-8 h-8">
                   <Image src="/images/logo.png" alt="Fittrust" fill className="object-contain" />
@@ -219,11 +219,25 @@ export function Header() {
                 </button>
               </div>
             </div>
+
+            {/* MOBILE SEARCH BAR - ONLY on mobile */}
+            <div className="mt-3">
+              <form onSubmit={handleSearch} className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search products, brands and more..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full py-2.5 pl-9 pr-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
+                />
+              </form>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* MOBILE ACCOUNT DROPDOWN - Below header */}
+      {/* MOBILE ACCOUNT DROPDOWN */}
       {accountDropdownOpen && (
         <div className="md:hidden bg-white border-b shadow-lg">
           <div className="container mx-auto px-4 py-3">
@@ -260,22 +274,6 @@ export function Header() {
         </div>
       )}
 
-      {/* MOBILE SEARCH BAR - Below dropdowns */}
-      <div className="md:hidden bg-white pb-4 pt-2">
-        <div className="container mx-auto px-4">
-          <form onSubmit={handleSearch} className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search products, brands and more..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full py-2.5 pl-9 pr-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
-            />
-          </form>
-        </div>
-      </div>
-
       {/* MOBILE SIDEBAR MENU */}
       {mobileMenuOpen && (
         <>
@@ -289,7 +287,6 @@ export function Header() {
             </div>
             
             <div className="p-4 space-y-4">
-              {/* User Info if logged in */}
               {isAuthenticated && (
                 <div className="pb-3 border-b">
                   <div className="flex items-center gap-3">
@@ -304,7 +301,6 @@ export function Header() {
                 </div>
               )}
 
-              {/* Categories */}
               <div>
                 <h3 className="font-semibold text-gray-800 mb-2">Categories</h3>
                 <div className="space-y-1 pl-2">
@@ -321,7 +317,6 @@ export function Header() {
                 </div>
               </div>
 
-              {/* Quick Links */}
               <div className="pt-3 border-t">
                 <h3 className="font-semibold text-gray-800 mb-2">Quick Links</h3>
                 <div className="space-y-1 pl-2">
@@ -337,7 +332,6 @@ export function Header() {
                 </div>
               </div>
 
-              {/* Logout button for mobile */}
               {isAuthenticated && (
                 <button onClick={handleLogout} className="w-full mt-4 py-2 text-center text-red-600 border-t pt-4">
                   Logout

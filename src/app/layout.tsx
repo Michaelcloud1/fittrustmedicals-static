@@ -18,7 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="font-sans overflow-x-hidden w-full">
         <BackendStatus />
-        {/* Header is removed from here - it will be in individual pages */}
+        {/* ⚠️ MAKE SURE THERE IS NO <Header /> HERE ⚠️ */}
         <main className="min-h-screen">{children}</main>
         <Footer />
         <ClientWrapper />

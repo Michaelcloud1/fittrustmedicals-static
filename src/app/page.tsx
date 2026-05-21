@@ -19,10 +19,6 @@ import {
 } from 'lucide-react';
 import { usePromotionsStore } from '@/stores/promotionsStore';
 import { Header } from '@/components/layout/Header';
-import AnimatedAds from '@/components/home/AnimatedAds';
-import AnimatedFlyerCards from '@/components/home/AnimatedFlyerCards';
-import AnimatedCountdownBanner from '@/components/home/AnimatedCountdownBanner';
-import NigerianMedicalProfessional from '@/components/home/NigerianMedicalProfessional';
 
 interface Product {
   id: string;
@@ -141,11 +137,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header - ONLY ONCE */}
+      {/* Header - from separate file */}
       <Header />
-
-      {/* Nigerian Medical Professional Section */}
-      <NigerianMedicalProfessional />
 
       {/* Announcement Bar */}
       {activePromotions.length > 0 && (
@@ -207,11 +200,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      {/* Animated Ads */}
-      <AnimatedAds />
-      <AnimatedFlyerCards />
-      <AnimatedCountdownBanner />
 
       {/* Flash Sales Section */}
       <section className="container mx-auto px-4 py-8">

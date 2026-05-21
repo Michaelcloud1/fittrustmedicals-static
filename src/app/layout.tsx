@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-// REMOVE these imports - they are not needed here
-// import { Header } from '@/components/layout/Header';
 import { BackendStatus } from '@/components/BackendStatus';
 import { Footer } from '@/components/layout/Footer';
 import ClientWrapper from '@/components/layout/ClientWrapper';
@@ -20,8 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="font-sans overflow-x-hidden w-full">
         <BackendStatus />
-        {/* REMOVE Header from here - it should only be in individual pages */}
-        {/* <Header /> */}
+        {/* Header is removed from here - it will be in individual pages */}
         <main className="min-h-screen">{children}</main>
         <Footer />
         <ClientWrapper />

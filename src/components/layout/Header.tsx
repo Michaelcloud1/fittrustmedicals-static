@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartStore } from '@/stores/cartStore';
@@ -21,37 +21,20 @@ const calculateCartCount = (items: any[]) => {
 };
 
 export function Header() {
-  const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
-  const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
 
   const accountRef = useRef<HTMLDivElement>(null);
 
-  // Safe destructuring with defaults
-  const authStore = useAuthStore();
-  const cartStore = useCartStore();
-  
-  const customer = authStore?.customer || null;
-  const isAuthenticated = authStore?.isAuthenticated || false;
-  const logout = authStore?.logout || (() => {});
-  
-  const items = cartStore?.items || [];
-  
-  const [cartItemCount, setCartItemCount] = useState(0);
+  const { customer, isAuthenticated, logout } = useAuthStore();
+  const { items } = useCartStore();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  useEffect(() => {
-    if (isClient) {
-      setCartItemCount(calculateCartCount(items));
-    }
-  }, [items, isClient]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -74,6 +57,8 @@ export function Header() {
     };
   }, [mobileMenuOpen]);
 
+  const cartItemCount = isClient ? calculateCartCount(items) : 0;
+
   const allCategories = [
     { name: 'Diagnostic Equipment', href: '/products?category=diagnostic' },
     { name: 'Surgical Supplies', href: '/products?category=surgical' },
@@ -83,16 +68,10 @@ export function Header() {
     { name: 'Lab Equipment', href: '/products?category=lab' },
     { name: 'Mobility Aids', href: '/products?category=mobility' },
     { name: 'Hospital Furniture', href: '/products?category=furniture' },
-    { name: 'Pharmaceuticals', href: '/products?category=pharma' },
-    { name: 'Dental Equipment', href: '/products?category=dental' },
   ];
 
   const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    await logout();
     router.push('/');
     setMobileMenuOpen(false);
     setAccountDropdownOpen(false);
@@ -107,28 +86,11 @@ export function Header() {
     }
   };
 
-  // Don't render anything on server to avoid hydration mismatch
-  if (!isClient) {
-    return (
-      <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
-        <div className="border-b border-gray-100 bg-white">
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
-              <div className="w-48 h-10 bg-gray-200 rounded-full animate-pulse"></div>
-              <div className="w-24 h-10 bg-gray-200 rounded-full animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-      </header>
-    );
-  }
-
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
       <div className="border-b border-gray-100 bg-white">
         <div className="container mx-auto px-4 py-3">
-          {/* DESKTOP LAYOUT */}
+          {/* DESKTOP HEADER */}
           <div className="hidden md:flex items-center justify-between gap-6">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 flex-shrink-0">
@@ -142,16 +104,12 @@ export function Header() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-lg font-bold text-blue-600">
-                  FITTRUST MEDICALS
-                </span>
-                <span className="text-xs text-gray-500">
-                  Healthcare Supplies
-                </span>
+                <span className="text-lg font-bold text-blue-600">FITTRUST MEDICALS</span>
+                <span className="text-xs text-gray-500">Healthcare Supplies</span>
               </div>
             </Link>
 
-            {/* Search Bar - Desktop */}
+            {/* Search Bar */}
             <form onSubmit={handleSearch} className="flex-1 max-w-xl">
               <div className="relative">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -165,9 +123,8 @@ export function Header() {
               </div>
             </form>
 
-            {/* Right Icons */}
+            {/* Icons */}
             <div className="flex items-center gap-3 flex-shrink-0">
-              {/* Account Dropdown */}
               <div className="relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
@@ -215,12 +172,7 @@ export function Header() {
                 )}
               </div>
 
-              {/* Cart Icon */}
-              <Link 
-                href="/cart" 
-                className="relative p-2 rounded-lg hover:bg-gray-100"
-                aria-label="Shopping cart"
-              >
+              <Link href="/cart" className="relative p-2">
                 <ShoppingCart size={20} />
                 {cartItemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
@@ -231,70 +183,96 @@ export function Header() {
             </div>
           </div>
 
-          {/* MOBILE LAYOUT */}
+          {/* MOBILE HEADER - Simple and Clean */}
           <div className="md:hidden">
+            {/* Row 1: Logo and Menu Button */}
             <div className="flex items-center justify-between">
               <Link href="/" className="flex items-center gap-2">
                 <div className="relative w-8 h-8">
-                  <Image
-                    src="/images/logo.png"
-                    alt="Fittrust Medicals"
-                    fill
-                    className="object-contain"
-                  />
+                  <Image src="/images/logo.png" alt="Fittrust" fill className="object-contain" />
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-blue-600">
-                    FITTRUST MEDICALS
-                  </span>
-                  <span className="text-[9px] text-gray-500">
-                    Healthcare Supplies
-                  </span>
+                <div>
+                  <div className="text-sm font-bold text-blue-600">FITTRUST MEDICALS</div>
+                  <div className="text-[9px] text-gray-500">Healthcare Supplies</div>
                 </div>
               </Link>
 
               <div className="flex items-center gap-1">
-                <div className="relative" ref={accountRef}>
-                  <button
-                    onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-                    className="p-2"
-                  >
-                    <User size={18} />
-                  </button>
-                </div>
+                {/* Account Icon */}
+                <button onClick={() => setAccountDropdownOpen(!accountDropdownOpen)} className="p-2">
+                  <User size={18} />
+                </button>
 
+                {/* Cart Icon */}
                 <Link href="/cart" className="relative p-2">
                   <ShoppingCart size={18} />
                   {cartItemCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center">
                       {cartItemCount}
                     </span>
                   )}
                 </Link>
 
-                <button
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="p-2"
-                >
+                {/* Menu Button */}
+                <button onClick={() => setMobileMenuOpen(true)} className="p-2">
                   <Menu size={20} />
                 </button>
               </div>
             </div>
-
-            {/* Search Bar - Mobile */}
-            <div className="mt-3">
-              <form onSubmit={handleSearch} className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search products, brands and more..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-2.5 pl-9 pr-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
-                />
-              </form>
-            </div>
           </div>
+        </div>
+      </div>
+
+      {/* MOBILE ACCOUNT DROPDOWN - Below header */}
+      {accountDropdownOpen && (
+        <div className="md:hidden bg-white border-b shadow-lg">
+          <div className="container mx-auto px-4 py-3">
+            {isAuthenticated ? (
+              <div className="space-y-2">
+                <div className="pb-2 border-b">
+                  <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
+                  <p className="text-xs text-gray-500">{customer?.email}</p>
+                </div>
+                <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
+                  My Account
+                </Link>
+                <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
+                  My Orders
+                </Link>
+                <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
+                  Wishlist
+                </Link>
+                <button onClick={handleLogout} className="block w-full text-left py-2 text-sm text-red-600">
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
+                  Sign In
+                </Link>
+                <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
+                  Create Account
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE SEARCH BAR - Below dropdowns */}
+      <div className="md:hidden bg-white pb-4 pt-2">
+        <div className="container mx-auto px-4">
+          <form onSubmit={handleSearch} className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search products, brands and more..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full py-2.5 pl-9 pr-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
+            />
+          </form>
         </div>
       </div>
 
@@ -305,13 +283,14 @@ export function Header() {
           <div className="fixed left-0 top-0 bottom-0 w-80 bg-white z-[101] shadow-xl overflow-y-auto">
             <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
               <span className="font-bold text-blue-600">Menu</span>
-              <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-lg hover:bg-gray-100">
+              <button onClick={() => setMobileMenuOpen(false)} className="p-2">
                 <X size={20} />
               </button>
             </div>
             
             <div className="p-4 space-y-4">
-              {isAuthenticated ? (
+              {/* User Info if logged in */}
+              {isAuthenticated && (
                 <div className="pb-3 border-b">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -319,57 +298,51 @@ export function Header() {
                     </div>
                     <div>
                       <div className="font-semibold">{customer?.name}</div>
-                      <button onClick={handleLogout} className="text-xs text-red-600">Logout</button>
+                      <div className="text-xs text-gray-500">{customer?.email}</div>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-2 pb-3 border-b">
-                  <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full bg-blue-600 text-white text-center py-2 rounded-md text-sm font-semibold">
-                    Sign In
-                  </Link>
-                  <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="block w-full border border-blue-600 text-blue-600 text-center py-2 rounded-md text-sm font-semibold">
-                    Create Account
-                  </Link>
-                </div>
               )}
 
+              {/* Categories */}
               <div>
-                <button
-                  onClick={() => setMobileCategoriesOpen(!mobileCategoriesOpen)}
-                  className="flex items-center justify-between w-full py-2 text-gray-800 font-semibold"
-                >
-                  Categories
-                  <ChevronDown size={16} className={`transition-transform ${mobileCategoriesOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {mobileCategoriesOpen && (
-                  <div className="mt-2 space-y-1 pl-4 border-l-2 border-blue-200">
-                    {allCategories.map((cat) => (
-                      <Link
-                        key={cat.name}
-                        href={cat.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg"
-                      >
-                        {cat.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
+                <h3 className="font-semibold text-gray-800 mb-2">Categories</h3>
+                <div className="space-y-1 pl-2">
+                  {allCategories.map((cat) => (
+                    <Link
+                      key={cat.name}
+                      href={cat.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block py-2 text-sm text-gray-600 hover:text-blue-600"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
               </div>
 
+              {/* Quick Links */}
               <div className="pt-3 border-t">
-                <h3 className="font-semibold text-gray-800 mb-2 text-sm">Quick Links</h3>
-                <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  All Products
-                </Link>
-                <Link href="/sale" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-red-600 hover:text-red-700 rounded-lg">
-                  Hot Deals
-                </Link>
-                <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">
-                  Contact Us
-                </Link>
+                <h3 className="font-semibold text-gray-800 mb-2">Quick Links</h3>
+                <div className="space-y-1 pl-2">
+                  <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-gray-600 hover:text-blue-600">
+                    All Products
+                  </Link>
+                  <Link href="/sale" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-red-600 hover:text-red-700">
+                    Hot Deals
+                  </Link>
+                  <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-gray-600 hover:text-blue-600">
+                    Contact Us
+                  </Link>
+                </div>
               </div>
+
+              {/* Logout button for mobile */}
+              {isAuthenticated && (
+                <button onClick={handleLogout} className="w-full mt-4 py-2 text-center text-red-600 border-t pt-4">
+                  Logout
+                </button>
+              )}
             </div>
           </div>
         </>

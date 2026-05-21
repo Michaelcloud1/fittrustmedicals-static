@@ -19,7 +19,65 @@ interface AuthStore {
   register: (data: any) => Promise<boolean>;
   logout: () => void;
   
-  // ... (keep all your other method signatures)
+  // Inventory Alerts
+  getInventoryAlerts: () => InventoryAlert[];
+  addInventoryAlert: (alert: Omit<InventoryAlert, 'status'>) => void;
+  updateInventory: (productId: string, newStock: number) => void;
+  
+  // Notifications
+  getUnreadCount: () => number;
+  addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void;
+  markNotificationAsRead: (id: string) => void;
+  markAllNotificationsAsRead: () => void;
+  deleteNotification: (id: string) => void;
+  
+  // Profile actions
+  updateProfile: (updates: Partial<CustomerProfile>) => void;
+  updatePassword: (currentPassword: string, newPassword: string) => boolean;
+  
+  // Address actions
+  addAddress: (address: Omit<Address, 'id'>) => void;
+  updateAddress: (id: string, updates: Partial<Address>) => void;
+  deleteAddress: (id: string) => void;
+  setDefaultAddress: (id: string) => void;
+  
+  // Wishlist actions
+  addToWishlist: (productId: string) => void;
+  removeFromWishlist: (productId: string) => void;
+  isInWishlist: (productId: string) => boolean;
+  
+  // Order actions
+  addOrder: (order: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt'>) => void;
+  updateOrderStatus: (orderId: string, status: Order['status'], staffId?: string) => void;
+  getOrderById: (orderId: string) => Order | undefined;
+  assignOrderToStaff: (orderId: string, staffId: string) => void;
+  markReceiptSent: (orderId: string) => void;
+  
+  // Staff performance tracking
+  recordStaffSale: (staffId: string, staffName: string, orderTotal: number) => void;
+  getStaffPerformance: () => StaffPerformance[];
+  getTopPerformingStaff: (limit?: number) => StaffPerformance[];
+  
+  // Financial analytics
+  getFinancialMetrics: (period: 'daily' | 'weekly' | 'monthly') => FinancialMetrics;
+  getSalesByDateRange: (startDate: string, endDate: string) => number;
+  getRevenueChartData: (days: number) => { date: string; revenue: number; orders: number }[];
+  
+  // Automated receipts
+  sendOrderReceipt: (orderId: string, email: string) => Promise<boolean>;
+  sendBulkReceipts: (orderIds: string[]) => Promise<{ sent: number; failed: number }>;
+  
+  // Wallet actions
+  addPaymentToWallet: (amount: number, orderId: string, customerEmail: string) => void;
+  getWalletBalance: () => number;
+  getWalletTransactions: (limit?: number) => WalletTransaction[];
+  addBankAccount: (account: Omit<BankAccount, 'id'>) => void;
+  removeBankAccount: (id: string) => void;
+  setDefaultBankAccount: (id: string) => void;
+  requestWithdrawal: (amount: number, bankAccountId: string) => boolean;
+  processWithdrawal: (withdrawalId: string, approve: boolean, reason?: string) => void;
+  getPendingWithdrawals: () => WithdrawalRequest[];
+  getWithdrawalHistory: () => WithdrawalRequest[];
   
   setHydrated: (hydrated: boolean) => void;
 }
@@ -47,8 +105,85 @@ export const useAuthStore = create<AuthStore>()(
 
       setHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
 
+      // ========== INVENTORY ALERTS ==========
+      getInventoryAlerts: () => {
+        return get().inventoryAlerts;
+      },
+
+      addInventoryAlert: (alert) => {
+        const status = alert.currentStock === 0 ? 'out' : alert.currentStock <= alert.threshold ? 'low' : 'ok';
+        set((state) => ({
+          inventoryAlerts: [
+            ...state.inventoryAlerts.filter((a) => a.productId !== alert.productId),
+            { ...alert, status },
+          ],
+        }));
+      },
+
+      updateInventory: (productId, newStock) => {
+        if (newStock <= 5) {
+          get().addInventoryAlert({
+            productId,
+            productName: 'Product ' + productId,
+            currentStock: newStock,
+            threshold: 5,
+          });
+        }
+      },
+
+      // ========== NOTIFICATIONS ==========
+      getUnreadCount: () => {
+        const notifications = get().customer?.notifications || [];
+        return notifications.filter((n) => !n.read).length;
+      },
+
+      addNotification: (notification) => {
+        const newNotification: Notification = {
+          ...notification,
+          id: 'notif-' + Date.now(),
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({
+          customer: state.customer
+            ? { ...state.customer, notifications: [newNotification, ...state.customer.notifications] }
+            : null,
+        }));
+      },
+
+      markNotificationAsRead: (id) => {
+        set((state) => ({
+          customer: state.customer
+            ? {
+                ...state.customer,
+                notifications: state.customer.notifications.map((notif) =>
+                  notif.id === id ? { ...notif, read: true } : notif
+                ),
+              }
+            : null,
+        }));
+      },
+
+      markAllNotificationsAsRead: () => {
+        set((state) => ({
+          customer: state.customer
+            ? {
+                ...state.customer,
+                notifications: state.customer.notifications.map((notif) => ({ ...notif, read: true })),
+              }
+            : null,
+        }));
+      },
+
+      deleteNotification: (id) => {
+        set((state) => ({
+          customer: state.customer
+            ? { ...state.customer, notifications: state.customer.notifications.filter((n) => n.id !== id) }
+            : null,
+        }));
+      },
+
+      // ========== AUTH ACTIONS ==========
       login: async (email, password) => {
-        // STEP 1: FIRST check localStorage for registered users
         const storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
         const matchedUser = storedUsers.find((u: any) => u.email === email && u.password === password);
         
@@ -79,11 +214,9 @@ export const useAuthStore = create<AuthStore>()(
             customer: customerProfile,
           });
           
-          console.log('Login successful. Role:', userRole, 'isAdmin:', isAdmin, 'isStaff:', isStaff);
           return true;
         }
         
-        // STEP 2: If not in localStorage, try backend API
         const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
         
         try {
@@ -119,14 +252,12 @@ export const useAuthStore = create<AuthStore>()(
               customer: customerProfile,
             });
             
-            console.log('Backend login successful. Role:', userRole);
             return true;
           }
         } catch (error) {
           console.error('Backend login error:', error);
         }
         
-        // STEP 3: ONLY use hardcoded credentials as LAST RESORT (for testing only)
         if (email === 'admin@fittrust.com' && password === 'admin123') {
           const adminProfile: CustomerProfile = {
             id: 'admin-1',
@@ -173,14 +304,12 @@ export const useAuthStore = create<AuthStore>()(
           return true;
         }
         
-        console.log('Login failed: No matching user found');
         return false;
       },
 
       register: async (data) => {
         const storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
         
-        // Check if email already exists
         if (storedUsers.some((u: any) => u.email === data.email)) {
           console.log('User already exists');
           return false;
@@ -200,16 +329,13 @@ export const useAuthStore = create<AuthStore>()(
           createdAt: new Date().toISOString(),
         };
         
-        // Save to fittrust-users
         storedUsers.push(newUser);
         localStorage.setItem('fittrust-users', JSON.stringify(storedUsers));
         
-        // ALSO save to registered-users for backup
         const registeredUsers = JSON.parse(localStorage.getItem('registered-users') || '[]');
         registeredUsers.push(newUser);
         localStorage.setItem('registered-users', JSON.stringify(registeredUsers));
         
-        // ALSO save to admin-created-users
         const adminUsers = JSON.parse(localStorage.getItem('admin-created-users') || '[]');
         adminUsers.push(newUser);
         localStorage.setItem('admin-created-users', JSON.stringify(adminUsers));
@@ -237,7 +363,6 @@ export const useAuthStore = create<AuthStore>()(
           customer: customerProfile,
         });
         
-        console.log('Registration successful. Role:', userRole);
         return true;
       },
 
@@ -252,19 +377,439 @@ export const useAuthStore = create<AuthStore>()(
         });
       },
 
-      // ... (keep all your other existing methods unchanged)
-      // updateProfile, addAddress, updateAddress, deleteAddress, setDefaultAddress,
-      // addToWishlist, removeFromWishlist, isInWishlist, addNotification,
-      // markNotificationAsRead, markAllNotificationsAsRead, deleteNotification,
-      // getUnreadCount, addOrder, updateOrderStatus, getOrderById, assignOrderToStaff,
-      // markReceiptSent, recordStaffSale, getStaffPerformance, getTopPerformingStaff,
-      // updateInventory, getInventoryAlerts, addInventoryAlert, getFinancialMetrics,
-      // getSalesByDateRange, getRevenueChartData, sendOrderReceipt, sendBulkReceipts,
-      // addPaymentToWallet, getWalletBalance, getWalletTransactions, addBankAccount,
-      // removeBankAccount, setDefaultBankAccount, requestWithdrawal, processWithdrawal,
-      // getPendingWithdrawals, getWithdrawalHistory
-      
-      // ... (rest of your existing methods remain exactly the same)
+      // ========== PROFILE ACTIONS ==========
+      updateProfile: (updates) => {
+        set((state) => ({
+          customer: state.customer
+            ? { ...state.customer, ...updates, updatedAt: new Date().toISOString() }
+            : null,
+        }));
+        
+        // Also update in localStorage
+        if (get().customer) {
+          const storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
+          const updatedUsers = storedUsers.map((u: any) => 
+            u.email === get().customer?.email ? { ...u, ...updates } : u
+          );
+          localStorage.setItem('fittrust-users', JSON.stringify(updatedUsers));
+        }
+      },
+
+      updatePassword: (currentPassword, newPassword) => {
+        const storedUsers = JSON.parse(localStorage.getItem('fittrust-users') || '[]');
+        const user = storedUsers.find((u: any) => u.email === get().customer?.email);
+        
+        if (user && user.password !== currentPassword) {
+          return false;
+        }
+        
+        const updatedUsers = storedUsers.map((u: any) => 
+          u.email === get().customer?.email ? { ...u, password: newPassword } : u
+        );
+        localStorage.setItem('fittrust-users', JSON.stringify(updatedUsers));
+        
+        return true;
+      },
+
+      // ========== ADDRESS ACTIONS ==========
+      addAddress: (address) => {
+        const newAddress: Address = { ...address, id: 'addr-' + Date.now() };
+        set((state) => ({
+          customer: state.customer
+            ? { ...state.customer, addresses: [...state.customer.addresses, newAddress] }
+            : null,
+        }));
+      },
+
+      updateAddress: (id, updates) => {
+        set((state) => ({
+          customer: state.customer
+            ? {
+                ...state.customer,
+                addresses: state.customer.addresses.map((addr) =>
+                  addr.id === id ? { ...addr, ...updates } : addr
+                ),
+              }
+            : null,
+        }));
+      },
+
+      deleteAddress: (id) => {
+        set((state) => ({
+          customer: state.customer
+            ? { ...state.customer, addresses: state.customer.addresses.filter((addr) => addr.id !== id) }
+            : null,
+        }));
+      },
+
+      setDefaultAddress: (id) => {
+        set((state) => ({
+          customer: state.customer
+            ? {
+                ...state.customer,
+                addresses: state.customer.addresses.map((addr) => ({
+                  ...addr,
+                  isDefault: addr.id === id,
+                })),
+              }
+            : null,
+        }));
+      },
+
+      // ========== WISHLIST ACTIONS ==========
+      addToWishlist: (productId) => {
+        set((state) => ({
+          customer: state.customer
+            ? { ...state.customer, wishlist: [...new Set([...state.customer.wishlist, productId])] }
+            : null,
+        }));
+        get().addNotification({
+          title: 'Added to Wishlist',
+          message: 'Product has been added to your wishlist',
+          type: 'order',
+          read: false,
+        });
+      },
+
+      removeFromWishlist: (productId) => {
+        set((state) => ({
+          customer: state.customer
+            ? { ...state.customer, wishlist: state.customer.wishlist.filter((id) => id !== productId) }
+            : null,
+        }));
+      },
+
+      isInWishlist: (productId) => get().customer?.wishlist.includes(productId) || false,
+
+      // ========== ORDER ACTIONS ==========
+      addOrder: (order) => {
+        const newOrder: Order = {
+          ...order,
+          id: 'order-' + Date.now(),
+          orderNumber: 'FT' + Date.now().toString().slice(-8),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          receiptSent: false,
+          customerEmail: get().customer?.email,
+        };
+        
+        set((state) => ({ orders: [...state.orders, newOrder] }));
+        
+        get().addPaymentToWallet(newOrder.total, newOrder.id, order.customerEmail || '');
+        get().sendOrderReceipt(newOrder.id, order.customerEmail || '');
+        
+        get().addNotification({
+          title: 'Order Placed',
+          message: `Order ${newOrder.orderNumber} has been placed`,
+          type: 'order',
+          read: false,
+        });
+      },
+
+      updateOrderStatus: (orderId, status, staffId) => {
+        set((state) => ({
+          orders: state.orders.map((order) =>
+            order.id === orderId
+              ? { ...order, status, updatedAt: new Date().toISOString(), staffId: staffId || order.staffId }
+              : order
+          ),
+        }));
+
+        const order = get().getOrderById(orderId);
+        if (order && staffId) {
+          get().recordStaffSale(staffId, 'Staff Member', order.total);
+        }
+      },
+
+      getOrderById: (orderId) => get().orders.find((order) => order.id === orderId),
+
+      assignOrderToStaff: (orderId, staffId) => {
+        set((state) => ({
+          orders: state.orders.map((order) =>
+            order.id === orderId ? { ...order, staffId } : order
+          ),
+        }));
+      },
+
+      markReceiptSent: (orderId) => {
+        set((state) => ({
+          orders: state.orders.map((order) =>
+            order.id === orderId ? { ...order, receiptSent: true } : order
+          ),
+        }));
+      },
+
+      // ========== STAFF PERFORMANCE ==========
+      recordStaffSale: (staffId, staffName, orderTotal) => {
+        set((state) => {
+          const existing = state.staffPerformance.find((s) => s.staffId === staffId);
+          let updatedPerformance;
+          
+          if (existing) {
+            updatedPerformance = state.staffPerformance.map((s) =>
+              s.staffId === staffId
+                ? {
+                    ...s,
+                    ordersProcessed: s.ordersProcessed + 1,
+                    totalSales: s.totalSales + orderTotal,
+                    lastActive: new Date().toISOString(),
+                  }
+                : s
+            );
+          } else {
+            updatedPerformance = [
+              ...state.staffPerformance,
+              {
+                staffId,
+                staffName,
+                ordersProcessed: 1,
+                totalSales: orderTotal,
+                customersServed: 1,
+                lastActive: new Date().toISOString(),
+              },
+            ];
+          }
+          
+          return { staffPerformance: updatedPerformance };
+        });
+      },
+
+      getStaffPerformance: () => get().staffPerformance,
+
+      getTopPerformingStaff: (limit = 5) => {
+        return [...get().staffPerformance]
+          .sort((a, b) => b.totalSales - a.totalSales)
+          .slice(0, limit);
+      },
+
+      // ========== FINANCIAL METRICS ==========
+      getFinancialMetrics: (period) => {
+        const now = new Date();
+        const orders = get().orders;
+        
+        let filteredOrders = orders;
+        if (period === 'daily') {
+          const today = now.toISOString().split('T')[0];
+          filteredOrders = orders.filter((o) => o.createdAt.startsWith(today));
+        } else if (period === 'weekly') {
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          filteredOrders = orders.filter((o) => new Date(o.createdAt) >= weekAgo);
+        } else if (period === 'monthly') {
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          filteredOrders = orders.filter((o) => new Date(o.createdAt) >= monthAgo);
+        }
+
+        const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0);
+        
+        return {
+          dailyRevenue: period === 'daily' ? totalRevenue : totalRevenue / 30,
+          weeklyRevenue: period === 'weekly' ? totalRevenue : totalRevenue / 4,
+          monthlyRevenue: totalRevenue,
+          totalOrders: filteredOrders.length,
+          averageOrderValue: filteredOrders.length > 0 ? totalRevenue / filteredOrders.length : 0,
+          topProducts: [],
+          walletBalance: get().wallet.balance,
+        };
+      },
+
+      getSalesByDateRange: (startDate, endDate) => {
+        const orders = get().orders.filter(
+          (o) => o.createdAt >= startDate && o.createdAt <= endDate
+        );
+        return orders.reduce((sum, o) => sum + o.total, 0);
+      },
+
+      getRevenueChartData: (days) => {
+        const data = [];
+        const now = new Date();
+        
+        for (let i = days - 1; i >= 0; i--) {
+          const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+          const dateStr = date.toISOString().split('T')[0];
+          
+          const dayOrders = get().orders.filter((o) => o.createdAt.startsWith(dateStr));
+          const revenue = dayOrders.reduce((sum, o) => sum + o.total, 0);
+          
+          data.push({
+            date: dateStr,
+            revenue,
+            orders: dayOrders.length,
+          });
+        }
+        
+        return data;
+      },
+
+      // ========== RECEIPTS ==========
+      sendOrderReceipt: async (orderId, email) => {
+        const order = get().getOrderById(orderId);
+        if (!order) return false;
+        
+        console.log(`Sending receipt for order ${order.orderNumber} to ${email}`);
+        get().markReceiptSent(orderId);
+        
+        get().addNotification({
+          title: 'Receipt Sent',
+          message: `Receipt for order ${order.orderNumber} has been sent`,
+          type: 'order',
+          read: false,
+        });
+        
+        return true;
+      },
+
+      sendBulkReceipts: async (orderIds) => {
+        let sent = 0;
+        let failed = 0;
+        
+        for (const orderId of orderIds) {
+          const success = await get().sendOrderReceipt(orderId, '');
+          if (success) sent++;
+          else failed++;
+        }
+        
+        return { sent, failed };
+      },
+
+      // ========== WALLET ACTIONS ==========
+      addPaymentToWallet: (amount, orderId, customerEmail) => {
+        const transaction: WalletTransaction = {
+          id: 'txn-' + Date.now(),
+          type: 'credit',
+          amount,
+          description: `Payment for order ${orderId}`,
+          orderId,
+          customerEmail,
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+          processedAt: new Date().toISOString(),
+        };
+        
+        set((state) => ({
+          wallet: {
+            ...state.wallet,
+            balance: state.wallet.balance + amount,
+            totalEarned: state.wallet.totalEarned + amount,
+            transactions: [transaction, ...state.wallet.transactions],
+          },
+        }));
+        
+        get().addNotification({
+          title: 'Payment Received',
+          message: `₦${amount.toLocaleString()} received from ${customerEmail}`,
+          type: 'payment',
+          read: false,
+        });
+      },
+
+      getWalletBalance: () => get().wallet.balance,
+
+      getWalletTransactions: (limit = 50) => {
+        return get().wallet.transactions.slice(0, limit);
+      },
+
+      addBankAccount: (account) => {
+        const newAccount: BankAccount = {
+          ...account,
+          id: 'bank-' + Date.now(),
+        };
+        
+        set((state) => ({
+          wallet: {
+            ...state.wallet,
+            bankAccounts: [...state.wallet.bankAccounts, newAccount],
+          },
+        }));
+      },
+
+      removeBankAccount: (id) => {
+        set((state) => ({
+          wallet: {
+            ...state.wallet,
+            bankAccounts: state.wallet.bankAccounts.filter((a) => a.id !== id),
+          },
+        }));
+      },
+
+      setDefaultBankAccount: (id) => {
+        set((state) => ({
+          wallet: {
+            ...state.wallet,
+            bankAccounts: state.wallet.bankAccounts.map((a) => ({
+              ...a,
+              isDefault: a.id === id,
+            })),
+          },
+        }));
+      },
+
+      requestWithdrawal: (amount, bankAccountId) => {
+        const state = get();
+        if (amount > state.wallet.balance) {
+          return false;
+        }
+        
+        const withdrawal: WithdrawalRequest = {
+          id: 'wdr-' + Date.now(),
+          amount,
+          bankAccountId,
+          status: 'pending',
+          requestedAt: new Date().toISOString(),
+        };
+        
+        set((state) => ({
+          wallet: {
+            ...state.wallet,
+            balance: state.wallet.balance - amount,
+            pendingWithdrawals: state.wallet.pendingWithdrawals + amount,
+            withdrawalRequests: [withdrawal, ...state.wallet.withdrawalRequests],
+          },
+        }));
+        
+        return true;
+      },
+
+      processWithdrawal: (withdrawalId, approve, reason) => {
+        set((state) => {
+          const withdrawal = state.wallet.withdrawalRequests.find((w) => w.id === withdrawalId);
+          if (!withdrawal) return state;
+          
+          const updatedRequests = state.wallet.withdrawalRequests.map((w) =>
+            w.id === withdrawalId
+              ? {
+                  ...w,
+                  status: approve ? 'completed' : 'rejected',
+                  processedAt: new Date().toISOString(),
+                  rejectionReason: approve ? undefined : reason,
+                }
+              : w
+          );
+          
+          return {
+            wallet: {
+              ...state.wallet,
+              pendingWithdrawals: approve 
+                ? state.wallet.pendingWithdrawals - withdrawal.amount
+                : state.wallet.pendingWithdrawals,
+              totalWithdrawn: approve
+                ? state.wallet.totalWithdrawn + withdrawal.amount
+                : state.wallet.totalWithdrawn,
+              balance: approve
+                ? state.wallet.balance
+                : state.wallet.balance + withdrawal.amount,
+              withdrawalRequests: updatedRequests,
+            },
+          };
+        });
+      },
+
+      getPendingWithdrawals: () => {
+        return get().wallet.withdrawalRequests.filter((w) => w.status === 'pending');
+      },
+
+      getWithdrawalHistory: () => {
+        return get().wallet.withdrawalRequests.filter((w) => w.status !== 'pending');
+      },
     }),
     {
       name: 'fittrust-auth',

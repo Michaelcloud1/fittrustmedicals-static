@@ -31,12 +31,27 @@ export function Header() {
 
   const accountRef = useRef<HTMLDivElement>(null);
 
-  const { customer, isAuthenticated, logout } = useAuthStore();
-  const { items } = useCartStore();
+  // Safe destructuring with defaults
+  const authStore = useAuthStore();
+  const cartStore = useCartStore();
+  
+  const customer = authStore?.customer || null;
+  const isAuthenticated = authStore?.isAuthenticated || false;
+  const logout = authStore?.logout || (() => {});
+  
+  const items = cartStore?.items || [];
+  
+  const [cartItemCount, setCartItemCount] = useState(0);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      setCartItemCount(calculateCartCount(items));
+    }
+  }, [items, isClient]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,8 +74,6 @@ export function Header() {
     };
   }, [mobileMenuOpen]);
 
-  const cartItemCount = isClient ? calculateCartCount(items) : 0;
-
   const allCategories = [
     { name: 'Diagnostic Equipment', href: '/products?category=diagnostic' },
     { name: 'Surgical Supplies', href: '/products?category=surgical' },
@@ -75,7 +88,11 @@ export function Header() {
   ];
 
   const handleLogout = async () => {
-    await logout();
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
     router.push('/');
     setMobileMenuOpen(false);
     setAccountDropdownOpen(false);
@@ -89,6 +106,23 @@ export function Header() {
       setMobileMenuOpen(false);
     }
   };
+
+  // Don't render anything on server to avoid hydration mismatch
+  if (!isClient) {
+    return (
+      <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
+        <div className="border-b border-gray-100 bg-white">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+              <div className="w-48 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+              <div className="w-24 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
@@ -131,9 +165,9 @@ export function Header() {
               </div>
             </form>
 
-            {/* Right Icons - ALWAYS VISIBLE ON DESKTOP */}
+            {/* Right Icons */}
             <div className="flex items-center gap-3 flex-shrink-0">
-              {/* Account Dropdown - VISIBLE ON DESKTOP */}
+              {/* Account Dropdown */}
               <div className="relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
@@ -141,7 +175,7 @@ export function Header() {
                 >
                   <User size={18} />
                   <span className="hidden lg:inline">
-                    {isAuthenticated ? customer?.name?.split(' ')[0] || 'Account' : 'Sign In'}
+                    {isAuthenticated && customer?.name ? customer.name.split(' ')[0] : 'Sign In'}
                   </span>
                   <ChevronDown size={14} className="hidden lg:block" />
                 </button>
@@ -200,7 +234,6 @@ export function Header() {
           {/* MOBILE LAYOUT */}
           <div className="md:hidden">
             <div className="flex items-center justify-between">
-              {/* Logo - Mobile */}
               <Link href="/" className="flex items-center gap-2">
                 <div className="relative w-8 h-8">
                   <Image
@@ -220,9 +253,7 @@ export function Header() {
                 </div>
               </Link>
 
-              {/* Icons - Mobile */}
               <div className="flex items-center gap-1">
-                {/* Account Icon - Mobile (no text) */}
                 <div className="relative" ref={accountRef}>
                   <button
                     onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
@@ -232,7 +263,6 @@ export function Header() {
                   </button>
                 </div>
 
-                {/* Cart Icon - Mobile */}
                 <Link href="/cart" className="relative p-2">
                   <ShoppingCart size={18} />
                   {cartItemCount > 0 && (
@@ -242,7 +272,6 @@ export function Header() {
                   )}
                 </Link>
 
-                {/* Menu Button - Mobile */}
                 <button
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                   className="p-2"
@@ -252,7 +281,7 @@ export function Header() {
               </div>
             </div>
 
-            {/* Search Bar - Mobile (BELOW) */}
+            {/* Search Bar - Mobile */}
             <div className="mt-3">
               <form onSubmit={handleSearch} className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -305,7 +334,6 @@ export function Header() {
                 </div>
               )}
 
-              {/* Categories dropdown for mobile */}
               <div>
                 <button
                   onClick={() => setMobileCategoriesOpen(!mobileCategoriesOpen)}
@@ -330,7 +358,6 @@ export function Header() {
                 )}
               </div>
 
-              {/* Quick Links */}
               <div className="pt-3 border-t">
                 <h3 className="font-semibold text-gray-800 mb-2 text-sm">Quick Links</h3>
                 <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block px-2 py-2 text-sm text-gray-600 hover:text-blue-600 rounded-lg">

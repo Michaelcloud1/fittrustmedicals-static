@@ -90,7 +90,7 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
       <div className="border-b border-gray-100 bg-white">
         <div className="container mx-auto px-4 py-3">
-          {/* DESKTOP HEADER - visible on md and up */}
+          {/* ===== DESKTOP HEADER - ONLY on md and above ===== */}
           <div className="hidden md:flex items-center justify-between gap-6">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 flex-shrink-0">
@@ -183,7 +183,7 @@ export function Header() {
             </div>
           </div>
 
-          {/* MOBILE HEADER - ONLY visible on mobile (md:hidden) */}
+          {/* ===== MOBILE HEADER - ONLY on mobile (below md) ===== */}
           <div className="md:hidden">
             <div className="flex items-center justify-between">
               {/* Logo - Mobile */}

@@ -7,27 +7,22 @@ import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/Button';
 import { 
   ChevronRight, 
-  Truck,
-  Shield,
-  Clock,
-  Percent,
   Sparkles,
-  Star,
-  Award,
   Zap,
-  Heart,
   Stethoscope,
   Microscope,
   Activity,
   ArrowRight,
   Tag,
-  Gift
+  Gift,
+  Shield
 } from 'lucide-react';
 import { usePromotionsStore } from '@/stores/promotionsStore';
 import { Header } from '@/components/layout/Header';
 import AnimatedAds from '@/components/home/AnimatedAds';
 import AnimatedFlyerCards from '@/components/home/AnimatedFlyerCards';
 import AnimatedCountdownBanner from '@/components/home/AnimatedCountdownBanner';
+import NigerianMedicalProfessional from '@/components/home/NigerianMedicalProfessional';
 
 interface Product {
   id: string;
@@ -146,8 +141,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header - from separate file */}
+      {/* Header - ONLY ONCE */}
       <Header />
+
+      {/* Nigerian Medical Professional Section */}
+      <NigerianMedicalProfessional />
 
       {/* Announcement Bar */}
       {activePromotions.length > 0 && (
@@ -210,20 +208,10 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Animated Ads Carousel */}
-      <div className="container mx-auto px-4">
-        <AnimatedAds />
-      </div>
-
-      {/* Animated Flyer Cards */}
-      <div className="container mx-auto px-4">
-        <AnimatedFlyerCards />
-      </div>
-
-      {/* Animated Countdown Banner */}
-      <div className="container mx-auto px-4">
-        <AnimatedCountdownBanner />
-      </div>
+      {/* Animated Ads */}
+      <AnimatedAds />
+      <AnimatedFlyerCards />
+      <AnimatedCountdownBanner />
 
       {/* Flash Sales Section */}
       <section className="container mx-auto px-4 py-8">
@@ -232,13 +220,6 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <Zap className="w-5 h-5" />
               <h2 className="font-bold text-lg">FLASH SALES</h2>
-              <div className="flex gap-1 ml-4">
-                <div className="bg-black/30 px-2 py-1 rounded text-sm font-mono">02</div>
-                <span>:</span>
-                <div className="bg-black/30 px-2 py-1 rounded text-sm font-mono">15</div>
-                <span>:</span>
-                <div className="bg-black/30 px-2 py-1 rounded text-sm font-mono">42</div>
-              </div>
             </div>
             <Link href="/products?filter=flash-sales" className="text-sm hover:underline">View All &gt;</Link>
           </div>

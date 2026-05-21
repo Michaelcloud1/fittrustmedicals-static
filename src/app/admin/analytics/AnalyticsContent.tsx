@@ -78,7 +78,6 @@ export default function AnalyticsContent() {
   const [salesData, setSalesData] = useState<any[]>([]);
   const [categorySales, setCategorySales] = useState<{name: string; percentage: number; sales: number}[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [totalProductsCount, setTotalProductsCount] = useState(0);
@@ -191,7 +190,6 @@ export default function AnalyticsContent() {
           } else if (Array.isArray(productsData)) {
             productsList = productsData;
           }
-          setProducts(productsList);
           setTotalProductsCount(productsList.filter((p: any) => p.isActive !== false).length);
         }
       } catch (error) {

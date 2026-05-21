@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/Button';
 import { 
@@ -22,8 +23,8 @@ import {
   Tag,
   Gift
 } from 'lucide-react';
-import Link from 'next/link';
 import { usePromotionsStore } from '@/stores/promotionsStore';
+import { Header } from '@/components/layout/Header';
 import AnimatedAds from '@/components/home/AnimatedAds';
 import AnimatedFlyerCards from '@/components/home/AnimatedFlyerCards';
 import AnimatedCountdownBanner from '@/components/home/AnimatedCountdownBanner';
@@ -49,7 +50,7 @@ interface Product {
 
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [campaignProducts, setCampaignProducts] = useState<Product[]>([]); // ✅ FIXED: Added missing =
+  const [campaignProducts, setCampaignProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
   const { promotions } = usePromotionsStore();
@@ -145,6 +146,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header Component */}
+      <Header />
+
       {/* Announcement Bar */}
       {activePromotions.length > 0 && (
         <motion.div 
@@ -164,10 +168,9 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* Hero Banner Area - FIXED: Entire banner is now clickable */}
+      {/* Hero Banner Area */}
       <div className="container mx-auto px-4 py-4">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Main Banner - FULLY CLICKABLE */}
           <Link href="/products" className="lg:col-span-3 block">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg overflow-hidden relative h-64 lg:h-80 cursor-pointer group">
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-300" />
@@ -188,7 +191,6 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Side Promos */}
           <div className="grid grid-cols-2 gap-4">
             <Link href="/products?category=diagnostic">
               <div className="bg-blue-500 rounded-lg p-4 text-white text-center hover:opacity-90 transition cursor-pointer">

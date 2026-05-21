@@ -11,16 +11,10 @@ import {
   Package,
   ArrowUpRight,
   ArrowDownRight,
-  Download,
-  Calendar,
-  Users,
-  Eye
+  Download
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { useProductsStore } from '@/stores/productsStore';
-import { useOrdersStore } from '@/stores/ordersStore';
-import { useAuthStore } from '@/stores/authStore';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -35,7 +29,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
-// Simple bar chart component that doesn't cause SSR issues
+// Simple bar chart component that only renders on client
 const SimpleBarChart = ({ salesData, maxRevenue }: { salesData: any[]; maxRevenue: number }) => {
   const [isClient, setIsClient] = useState(false);
   
@@ -51,7 +45,7 @@ const SimpleBarChart = ({ salesData, maxRevenue }: { salesData: any[]; maxRevenu
     );
   }
   
-  if (salesData.length === 0 || maxRevenue === 0) {
+  if (!salesData || salesData.length === 0 || maxRevenue === 0) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
@@ -80,14 +74,17 @@ const SimpleBarChart = ({ salesData, maxRevenue }: { salesData: any[]; maxRevenu
 };
 
 export default function AnalyticsPage() {
-  const { products, fetchProducts } = useProductsStore();
-  const { orders, fetchOrders } = useOrdersStore();
-  const { customer } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
   const [period, setPeriod] = useState('month');
   const [salesData, setSalesData] = useState<any[]>([]);
   const [categorySales, setCategorySales] = useState<{name: string; percentage: number; sales: number}[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalProductsCount, setTotalProductsCount] = useState(0);
+  const [averageOrderValue, setAverageOrderValue] = useState(0);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
@@ -102,7 +99,7 @@ export default function AnalyticsPage() {
     let totalSales = 0;
     
     ordersList.forEach(order => {
-      if (order.paymentStatus === 'PAID' || order.status === 'delivered') {
+      if (order.paymentStatus === 'PAID') {
         totalSales += order.totalAmount || 0;
         
         order.items?.forEach((item: any) => {
@@ -151,36 +148,58 @@ export default function AnalyticsPage() {
       });
       
       const revenue = dayOrders.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0);
-      const count = dayOrders.length;
       
       last7Days.push({
         date: dateStr,
         displayDate: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
         revenue,
-        orders: count
+        orders: dayOrders.length
       });
     }
     
     setSalesData(last7Days);
   };
 
+  // Fetch data directly from API
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Check if fetch functions exist before calling
-        if (typeof fetchProducts === 'function') {
-          await fetchProducts();
-        }
-        if (typeof fetchOrders === 'function') {
-          await fetchOrders();
+        // Fetch orders
+        const ordersRes = await fetch(`${BACKEND_URL}/api/orders`);
+        let ordersData = [];
+        if (ordersRes.ok) {
+          ordersData = await ordersRes.json();
+          setOrders(ordersData);
+          
+          // Calculate revenue from orders
+          const revenue = ordersData.reduce((sum: number, order: any) => {
+            if (order.paymentStatus === 'PAID') {
+              return sum + (order.totalAmount || 0);
+            }
+            return sum;
+          }, 0);
+          setTotalRevenue(revenue);
+          setTotalOrders(ordersData.length);
+          setAverageOrderValue(ordersData.length > 0 ? revenue / ordersData.length : 0);
+          
+          // Calculate category sales
+          calculateCategorySales(ordersData);
+          generateSalesData(ordersData);
         }
         
-        // Calculate category sales and chart data
-        const currentOrders = useOrdersStore.getState().orders;
-        if (currentOrders && currentOrders.length > 0) {
-          calculateCategorySales(currentOrders);
-          generateSalesData(currentOrders);
+        // Fetch products
+        const productsRes = await fetch(`${BACKEND_URL}/api/catalog/products`);
+        if (productsRes.ok) {
+          const productsData = await productsRes.json();
+          let productsList = [];
+          if (productsData.success && productsData.products) {
+            productsList = productsData.products;
+          } else if (Array.isArray(productsData)) {
+            productsList = productsData;
+          }
+          setProducts(productsList);
+          setTotalProductsCount(productsList.filter((p: any) => p.isActive !== false).length);
         }
       } catch (error) {
         console.error('Error loading analytics data:', error);
@@ -190,7 +209,7 @@ export default function AnalyticsPage() {
     };
     
     loadData();
-  }, [fetchProducts, fetchOrders]);
+  }, [BACKEND_URL]);
 
   const formatNaira = (price: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -200,24 +219,6 @@ export default function AnalyticsPage() {
       maximumFractionDigits: 0,
     }).format(price || 0);
   };
-
-  // Calculate statistics from real data - safely
-  const totalRevenue = useMemo(() => {
-    if (!orders || !Array.isArray(orders)) return 0;
-    return orders.reduce((sum, order) => {
-      if (order.paymentStatus === 'PAID') {
-        return sum + (order.totalAmount || 0);
-      }
-      return sum;
-    }, 0);
-  }, [orders]);
-  
-  const totalOrders = useMemo(() => orders?.length || 0, [orders]);
-  const totalProducts = useMemo(() => {
-    if (!products || !Array.isArray(products)) return 0;
-    return products.filter(p => p.isActive !== false).length;
-  }, [products]);
-  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
   
   // Get period change safely
   const getPeriodChange = (current: number, previous: number) => {
@@ -226,26 +227,27 @@ export default function AnalyticsPage() {
   };
 
   const getPreviousPeriodRevenue = () => {
-    if (!orders || !Array.isArray(orders)) return 0;
+    if (!orders || orders.length === 0) return 0;
     
     const now = new Date();
+    let startDate: Date;
     
     if (period === 'week') {
-      const weekAgo = new Date(now);
-      weekAgo.setDate(now.getDate() - 7);
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 7);
       return orders.reduce((sum, order) => {
         const orderDate = new Date(order.createdAt);
-        if (orderDate >= weekAgo && order.paymentStatus === 'PAID') {
+        if (orderDate >= startDate && order.paymentStatus === 'PAID') {
           return sum + (order.totalAmount || 0);
         }
         return sum;
       }, 0);
     } else if (period === 'month') {
-      const monthAgo = new Date(now);
-      monthAgo.setMonth(now.getMonth() - 1);
+      startDate = new Date(now);
+      startDate.setMonth(now.getMonth() - 1);
       return orders.reduce((sum, order) => {
         const orderDate = new Date(order.createdAt);
-        if (orderDate >= monthAgo && order.paymentStatus === 'PAID') {
+        if (orderDate >= startDate && order.paymentStatus === 'PAID') {
           return sum + (order.totalAmount || 0);
         }
         return sum;
@@ -258,7 +260,7 @@ export default function AnalyticsPage() {
   const previousRevenue = getPreviousPeriodRevenue();
   const revenueChange = getPeriodChange(totalRevenue, previousRevenue);
   const ordersChange = totalOrders > 0 ? 12 : 0;
-  const productsChange = totalProducts > 0 ? 8 : 0;
+  const productsChange = totalProductsCount > 0 ? 8 : 0;
   const aovChange = getPeriodChange(averageOrderValue, averageOrderValue * 0.88);
 
   const stats = [
@@ -280,7 +282,7 @@ export default function AnalyticsPage() {
     },
     {
       title: 'Total Products',
-      value: totalProducts.toLocaleString(),
+      value: totalProductsCount.toLocaleString(),
       change: productsChange,
       icon: Package,
       color: 'bg-purple-50',
@@ -298,7 +300,7 @@ export default function AnalyticsPage() {
 
   // Filter orders based on selected period
   const getFilteredOrders = () => {
-    if (!orders || !Array.isArray(orders)) return [];
+    if (!orders || orders.length === 0) return [];
     
     const now = new Date();
     const filtered = orders.filter(order => {
@@ -332,11 +334,11 @@ export default function AnalyticsPage() {
       period,
       totalRevenue,
       totalOrders,
-      totalProducts,
+      totalProducts: totalProductsCount,
       averageOrderValue,
       orders: recentOrders.map(order => ({
         id: order.id,
-        customerName: order.customerName || 'Guest',
+        customerName: order.customerName || order.user?.email || 'Guest',
         amount: order.totalAmount,
         status: order.status,
         date: order.createdAt
@@ -352,7 +354,8 @@ export default function AnalyticsPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading || !isClient) {
+  // Show loading while hydrating or loading data
+  if (!isClient || loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -506,7 +509,7 @@ export default function AnalyticsPage() {
                         <span className="text-sm text-gray-800">
                           {order.user?.firstName && order.user?.lastName 
                             ? `${order.user.firstName} ${order.user.lastName}`
-                            : order.customerName || 'Guest'}
+                            : order.customerName || order.user?.email || 'Guest'}
                         </span>
                       </td>
                       <td className="p-4">

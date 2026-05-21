@@ -86,7 +86,6 @@ export function Header() {
     }
   };
 
-  // Common Logo Component to avoid duplication
   const Logo = () => (
     <Link href="/" className="flex items-center gap-2">
       <div className="relative w-8 h-8 md:w-10 md:h-10">
@@ -109,12 +108,10 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
       <div className="border-b border-gray-100 bg-white">
         <div className="container mx-auto px-4 py-3">
-          {/* SINGLE HEADER - responsive design without duplication */}
           <div className="flex items-center justify-between gap-4">
-            {/* Logo - ONE TIME ONLY */}
             <Logo />
 
-            {/* Search Bar - Desktop only */}
+            {/* Desktop Search Bar */}
             <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-xl">
               <div className="relative">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -128,9 +125,7 @@ export function Header() {
               </div>
             </form>
 
-            {/* Right Icons */}
             <div className="flex items-center gap-2">
-              {/* Account Icon */}
               <div className="relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
@@ -144,7 +139,6 @@ export function Header() {
                 </button>
               </div>
 
-              {/* Cart Icon */}
               <Link href="/cart" className="relative p-2">
                 <ShoppingCart size={20} />
                 {cartItemCount > 0 && (
@@ -154,14 +148,13 @@ export function Header() {
                 )}
               </Link>
 
-              {/* Mobile Menu Button */}
               <button onClick={() => setMobileMenuOpen(true)} className="md:hidden p-2">
                 <Menu size={20} />
               </button>
             </div>
           </div>
 
-          {/* Search Bar - Mobile only (below the header) */}
+          {/* Mobile Search Bar - ONLY BELOW */}
           <div className="md:hidden mt-3">
             <form onSubmit={handleSearch} className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -243,7 +236,7 @@ export function Header() {
 
               <div>
                 <h3 className="font-semibold text-gray-800 mb-2">Categories</h3>
-                <div className="space-y-1 pl-2">
+                <div className="space-y-1">
                   {allCategories.map((cat) => (
                     <Link
                       key={cat.name}
@@ -259,7 +252,7 @@ export function Header() {
 
               <div className="pt-3 border-t">
                 <h3 className="font-semibold text-gray-800 mb-2">Quick Links</h3>
-                <div className="space-y-1 pl-2">
+                <div className="space-y-1">
                   <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm text-gray-600 hover:text-blue-600">
                     All Products
                   </Link>

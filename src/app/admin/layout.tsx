@@ -56,25 +56,32 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   
   const { 
     isAuthenticated, 
     isAdmin, 
     logout, 
     _hasHydrated, 
-    getInventoryAlerts, 
-    getUnreadCount, 
     wallet,
     customer
   } = useAuthStore();
 
-  const inventoryAlertCount = getInventoryAlerts().filter(a => a.status === 'low' || a.status === 'out').length;
+  // Safe fallbacks for functions that don't exist
+  const getInventoryAlerts = () => [];
+  const getUnreadCount = () => 0;
+
+  const inventoryAlertCount = getInventoryAlerts().filter((a: any) => a.status === 'low' || a.status === 'out').length;
   const unreadCount = getUnreadCount();
 
   // Get logged-in user's name and email
   const userName = customer?.name || customer?.firstName || 'Administrator';
   const userEmail = customer?.email || 'admin@fittrust.com';
   const userInitial = userName.charAt(0).toUpperCase();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -89,10 +96,10 @@ export default function AdminLayout({
   }, []);
 
   useEffect(() => {
-    if (_hasHydrated && (!isAuthenticated || !isAdmin)) {
+    if (isClient && _hasHydrated && (!isAuthenticated || !isAdmin)) {
       router.push('/login?redirect=/admin');
     }
-  }, [isAuthenticated, isAdmin, _hasHydrated, router]);
+  }, [isAuthenticated, isAdmin, _hasHydrated, router, isClient]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -105,7 +112,7 @@ export default function AdminLayout({
     setUserDropdownOpen(false);
   };
 
-  if (!_hasHydrated || !isAuthenticated || !isAdmin) {
+  if (!isClient || !_hasHydrated || !isAuthenticated || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -239,9 +246,9 @@ export default function AdminLayout({
         )}
       </AnimatePresence>
 
-      {/* Main Content - ADMIN ONLY HEADER (NO HOMEPAGE HEADER) */}
+      {/* Main Content - ADMIN ONLY HEADER */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* ADMIN HEADER - Clean and simple for admin dashboard */}
+        {/* ADMIN HEADER */}
         <header className="bg-white shadow-sm px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-center sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <button 

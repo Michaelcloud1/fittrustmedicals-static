@@ -86,31 +86,36 @@ export function Header() {
     }
   };
 
+  // Common Logo Component to avoid duplication
+  const Logo = () => (
+    <Link href="/" className="flex items-center gap-2">
+      <div className="relative w-8 h-8 md:w-10 md:h-10">
+        <Image
+          src="/images/logo.png"
+          alt="Fittrust Medicals"
+          fill
+          className="object-contain"
+          priority
+        />
+      </div>
+      <div>
+        <div className="text-sm md:text-lg font-bold text-blue-600 whitespace-nowrap">FITTRUST MEDICALS</div>
+        <div className="text-[9px] md:text-xs text-gray-500 whitespace-nowrap">Healthcare Supplies</div>
+      </div>
+    </Link>
+  );
+
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
       <div className="border-b border-gray-100 bg-white">
         <div className="container mx-auto px-4 py-3">
-          {/* ===== DESKTOP HEADER - ONLY on md and above ===== */}
-          <div className="hidden md:flex items-center justify-between gap-6">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-3 flex-shrink-0">
-              <div className="relative w-10 h-10">
-                <Image
-                  src="/images/logo.png"
-                  alt="Fittrust Medicals"
-                  fill
-                  className="object-contain"
-                  priority
-                />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-bold text-blue-600">FITTRUST MEDICALS</span>
-                <span className="text-xs text-gray-500">Healthcare Supplies</span>
-              </div>
-            </Link>
+          {/* SINGLE HEADER - responsive design without duplication */}
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo - ONE TIME ONLY */}
+            <Logo />
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex-1 max-w-xl">
+            {/* Search Bar - Desktop only */}
+            <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-xl">
               <div className="relative">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -123,12 +128,13 @@ export function Header() {
               </div>
             </form>
 
-            {/* Icons */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            {/* Right Icons */}
+            <div className="flex items-center gap-2">
+              {/* Account Icon */}
               <div className="relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+                  className="flex items-center gap-1 px-2 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
                 >
                   <User size={18} />
                   <span className="hidden lg:inline">
@@ -136,42 +142,9 @@ export function Header() {
                   </span>
                   <ChevronDown size={14} className="hidden lg:block" />
                 </button>
-                {accountDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-100 z-[9999]">
-                    {isAuthenticated ? (
-                      <>
-                        <div className="px-4 py-2 border-b">
-                          <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
-                          <p className="text-xs text-gray-500">{customer?.email}</p>
-                        </div>
-                        <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          My Account
-                        </Link>
-                        <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          My Orders
-                        </Link>
-                        <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          Wishlist
-                        </Link>
-                        <hr className="my-1" />
-                        <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                          Logout
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          Sign In
-                        </Link>
-                        <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                          Create Account
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                )}
               </div>
 
+              {/* Cart Icon */}
               <Link href="/cart" className="relative p-2">
                 <ShoppingCart size={20} />
                 {cartItemCount > 0 && (
@@ -180,59 +153,26 @@ export function Header() {
                   </span>
                 )}
               </Link>
+
+              {/* Mobile Menu Button */}
+              <button onClick={() => setMobileMenuOpen(true)} className="md:hidden p-2">
+                <Menu size={20} />
+              </button>
             </div>
           </div>
 
-          {/* ===== MOBILE HEADER - ONLY on mobile (below md) ===== */}
-          <div className="md:hidden">
-            <div className="flex items-center justify-between">
-              {/* Logo - Mobile */}
-              <Link href="/" className="flex items-center gap-2">
-                <div className="relative w-8 h-8">
-                  <Image src="/images/logo.png" alt="Fittrust" fill className="object-contain" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-blue-600">FITTRUST MEDICALS</div>
-                  <div className="text-[9px] text-gray-500">Healthcare Supplies</div>
-                </div>
-              </Link>
-
-              <div className="flex items-center gap-1">
-                {/* Account Icon */}
-                <button onClick={() => setAccountDropdownOpen(!accountDropdownOpen)} className="p-2">
-                  <User size={18} />
-                </button>
-
-                {/* Cart Icon */}
-                <Link href="/cart" className="relative p-2">
-                  <ShoppingCart size={18} />
-                  {cartItemCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center">
-                      {cartItemCount}
-                    </span>
-                  )}
-                </Link>
-
-                {/* Menu Button */}
-                <button onClick={() => setMobileMenuOpen(true)} className="p-2">
-                  <Menu size={20} />
-                </button>
-              </div>
-            </div>
-
-            {/* MOBILE SEARCH BAR - ONLY on mobile */}
-            <div className="mt-3">
-              <form onSubmit={handleSearch} className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search products, brands and more..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-2.5 pl-9 pr-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
-                />
-              </form>
-            </div>
+          {/* Search Bar - Mobile only (below the header) */}
+          <div className="md:hidden mt-3">
+            <form onSubmit={handleSearch} className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search products, brands and more..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full py-2.5 pl-9 pr-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
+              />
+            </form>
           </div>
         </div>
       </div>

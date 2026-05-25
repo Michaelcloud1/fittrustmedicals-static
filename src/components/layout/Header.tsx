@@ -113,8 +113,8 @@ export function Header() {
           <div className="flex items-center justify-between gap-4">
             <Logo />
 
-            {/* Desktop Search Bar */}
-            <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-xl">
+            {/* Desktop Search Bar - lower z-index */}
+            <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-xl relative z-0">
               <div className="relative">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -127,8 +127,8 @@ export function Header() {
               </div>
             </form>
 
-            {/* Right Icons */}
-            <div className="flex items-center gap-2">
+            {/* Right Icons - HIGHER z-index to appear above search bar */}
+            <div className="flex items-center gap-2 relative z-10">
               {/* Account Dropdown */}
               <div className="relative" ref={accountRef}>
                 <button
@@ -142,7 +142,7 @@ export function Header() {
                   <ChevronDown size={14} className="hidden sm:block" />
                 </button>
                 
-                {/* Dropdown Menu */}
+                {/* Dropdown Menu - HIGHEST z-index */}
                 {accountDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-[9999]">
                     {isAuthenticated ? (
@@ -222,7 +222,19 @@ export function Header() {
             </div>
           </div>
 
-          {/* MOBILE SEARCH BAR - REMOVED as requested */}
+          {/* Mobile Search Bar */}
+          <div className="md:hidden mt-3">
+            <form onSubmit={handleSearch} className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search products, brands and more..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full py-2.5 pl-9 pr-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
+              />
+            </form>
+          </div>
         </div>
       </div>
 

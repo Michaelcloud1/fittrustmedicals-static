@@ -109,6 +109,7 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
       <div className="border-b border-gray-100 bg-white">
         <div className="container mx-auto px-4 py-3">
+          {/* TOP ROW: Logo + Search + Icons */}
           <div className="flex items-center justify-between gap-4">
             <Logo />
 
@@ -126,22 +127,22 @@ export function Header() {
               </div>
             </form>
 
-            {/* Desktop Icons */}
+            {/* Right Icons - Account + Cart + Menu */}
             <div className="flex items-center gap-2">
-              {/* Account Dropdown - Desktop */}
-              <div className="relative hidden md:block" ref={accountRef}>
+              {/* Account Dropdown - BOTH DESKTOP AND MOBILE */}
+              <div className="relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg transition-colors"
+                  className="flex items-center gap-1 px-2 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg transition-colors"
                 >
                   <User size={18} />
-                  <span className="hidden lg:inline">
+                  <span className="hidden sm:inline">
                     {isAuthenticated && customer?.name ? customer.name.split(' ')[0] : 'Sign In'}
                   </span>
-                  <ChevronDown size={14} className="hidden lg:block" />
+                  <ChevronDown size={14} className="hidden sm:block" />
                 </button>
                 
-                {/* Desktop Dropdown Menu */}
+                {/* Dropdown Menu - works for both desktop and mobile */}
                 {accountDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
                     {isAuthenticated ? (
@@ -211,7 +212,7 @@ export function Header() {
                 )}
               </Link>
 
-              {/* Mobile Menu Button */}
+              {/* Mobile Menu Button - ONLY visible on mobile */}
               <button 
                 onClick={() => setMobileMenuOpen(true)} 
                 className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -221,7 +222,7 @@ export function Header() {
             </div>
           </div>
 
-          {/* Mobile Search Bar - ONLY BELOW */}
+          {/* Mobile Search Bar - ONLY below on mobile */}
           <div className="md:hidden mt-3">
             <form onSubmit={handleSearch} className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -237,57 +238,7 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile Account Icon (separate from sidebar) */}
-      <div className="md:hidden bg-white border-b px-4 py-2 flex items-center justify-between">
-        <button
-          onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-          className="flex items-center gap-2 text-gray-700"
-        >
-          <User size={18} />
-          <span className="text-sm">
-            {isAuthenticated && customer?.name ? customer.name.split(' ')[0] : 'Account'}
-          </span>
-          <ChevronDown size={14} />
-        </button>
-        
-        {accountDropdownOpen && (
-          <div className="absolute left-0 right-0 top-[120px] bg-white shadow-lg border-b z-50">
-            <div className="p-4">
-              {isAuthenticated ? (
-                <div className="space-y-2">
-                  <div className="pb-2 border-b">
-                    <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
-                    <p className="text-xs text-gray-500">{customer?.email}</p>
-                  </div>
-                  <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
-                    My Account
-                  </Link>
-                  <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
-                    My Orders
-                  </Link>
-                  <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
-                    Wishlist
-                  </Link>
-                  <button onClick={handleLogout} className="block w-full text-left py-2 text-sm text-red-600">
-                    Logout
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
-                    Sign In
-                  </Link>
-                  <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
-                    Create Account
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* MOBILE SIDEBAR MENU */}
+      {/* MOBILE SIDEBAR MENU - ONLY for navigation */}
       {mobileMenuOpen && (
         <>
           <div className="fixed inset-0 bg-black/50 z-[100]" onClick={() => setMobileMenuOpen(false)} />

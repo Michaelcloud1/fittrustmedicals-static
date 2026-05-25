@@ -113,8 +113,8 @@ export function Header() {
           <div className="flex items-center justify-between gap-4">
             <Logo />
 
-            {/* Desktop Search Bar */}
-            <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-xl">
+            {/* Desktop Search Bar - lower z-index */}
+            <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-xl relative z-0">
               <div className="relative">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -127,9 +127,9 @@ export function Header() {
               </div>
             </form>
 
-            {/* Right Icons - Account + Cart + Menu */}
-            <div className="flex items-center gap-2">
-              {/* Account Dropdown - BOTH DESKTOP AND MOBILE */}
+            {/* Right Icons - HIGHER z-index to appear above search bar */}
+            <div className="flex items-center gap-2 relative z-10">
+              {/* Account Dropdown */}
               <div className="relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
@@ -142,9 +142,9 @@ export function Header() {
                   <ChevronDown size={14} className="hidden sm:block" />
                 </button>
                 
-                {/* Dropdown Menu - works for both desktop and mobile */}
+                {/* Dropdown Menu - HIGHEST z-index */}
                 {accountDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-[9999]">
                     {isAuthenticated ? (
                       <>
                         <div className="px-4 py-3 border-b border-gray-100">
@@ -212,7 +212,7 @@ export function Header() {
                 )}
               </Link>
 
-              {/* Mobile Menu Button - ONLY visible on mobile */}
+              {/* Mobile Menu Button */}
               <button 
                 onClick={() => setMobileMenuOpen(true)} 
                 className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -222,7 +222,7 @@ export function Header() {
             </div>
           </div>
 
-          {/* Mobile Search Bar - ONLY below on mobile */}
+          {/* Mobile Search Bar */}
           <div className="md:hidden mt-3">
             <form onSubmit={handleSearch} className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -238,7 +238,7 @@ export function Header() {
         </div>
       </div>
 
-      {/* MOBILE SIDEBAR MENU - ONLY for navigation */}
+      {/* MOBILE SIDEBAR MENU */}
       {mobileMenuOpen && (
         <>
           <div className="fixed inset-0 bg-black/50 z-[100]" onClick={() => setMobileMenuOpen(false)} />

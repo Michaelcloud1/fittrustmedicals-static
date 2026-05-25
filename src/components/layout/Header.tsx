@@ -36,6 +36,7 @@ export function Header() {
     setIsClient(true);
   }, []);
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
@@ -125,11 +126,13 @@ export function Header() {
               </div>
             </form>
 
+            {/* Desktop Icons */}
             <div className="flex items-center gap-2">
-              <div className="relative" ref={accountRef}>
+              {/* Account Dropdown - Desktop */}
+              <div className="relative hidden md:block" ref={accountRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-                  className="flex items-center gap-1 px-2 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg transition-colors"
                 >
                   <User size={18} />
                   <span className="hidden lg:inline">
@@ -137,9 +140,69 @@ export function Header() {
                   </span>
                   <ChevronDown size={14} className="hidden lg:block" />
                 </button>
+                
+                {/* Desktop Dropdown Menu */}
+                {accountDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                    {isAuthenticated ? (
+                      <>
+                        <div className="px-4 py-3 border-b border-gray-100">
+                          <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
+                          <p className="text-xs text-gray-500">{customer?.email}</p>
+                        </div>
+                        <Link 
+                          href="/account" 
+                          onClick={() => setAccountDropdownOpen(false)} 
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          My Account
+                        </Link>
+                        <Link 
+                          href="/orders" 
+                          onClick={() => setAccountDropdownOpen(false)} 
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          My Orders
+                        </Link>
+                        <Link 
+                          href="/wishlist" 
+                          onClick={() => setAccountDropdownOpen(false)} 
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Wishlist
+                        </Link>
+                        <div className="border-t border-gray-100 my-1"></div>
+                        <button 
+                          onClick={handleLogout} 
+                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          Logout
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link 
+                          href="/login" 
+                          onClick={() => setAccountDropdownOpen(false)} 
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Sign In
+                        </Link>
+                        <Link 
+                          href="/register" 
+                          onClick={() => setAccountDropdownOpen(false)} 
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Create Account
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <Link href="/cart" className="relative p-2">
+              {/* Cart Icon */}
+              <Link href="/cart" className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
                 <ShoppingCart size={20} />
                 {cartItemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
@@ -148,7 +211,11 @@ export function Header() {
                 )}
               </Link>
 
-              <button onClick={() => setMobileMenuOpen(true)} className="md:hidden p-2">
+              {/* Mobile Menu Button */}
+              <button 
+                onClick={() => setMobileMenuOpen(true)} 
+                className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
                 <Menu size={20} />
               </button>
             </div>
@@ -170,42 +237,55 @@ export function Header() {
         </div>
       </div>
 
-      {/* MOBILE ACCOUNT DROPDOWN */}
-      {accountDropdownOpen && (
-        <div className="md:hidden bg-white border-b shadow-lg">
-          <div className="container mx-auto px-4 py-3">
-            {isAuthenticated ? (
-              <div className="space-y-2">
-                <div className="pb-2 border-b">
-                  <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
-                  <p className="text-xs text-gray-500">{customer?.email}</p>
+      {/* Mobile Account Icon (separate from sidebar) */}
+      <div className="md:hidden bg-white border-b px-4 py-2 flex items-center justify-between">
+        <button
+          onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
+          className="flex items-center gap-2 text-gray-700"
+        >
+          <User size={18} />
+          <span className="text-sm">
+            {isAuthenticated && customer?.name ? customer.name.split(' ')[0] : 'Account'}
+          </span>
+          <ChevronDown size={14} />
+        </button>
+        
+        {accountDropdownOpen && (
+          <div className="absolute left-0 right-0 top-[120px] bg-white shadow-lg border-b z-50">
+            <div className="p-4">
+              {isAuthenticated ? (
+                <div className="space-y-2">
+                  <div className="pb-2 border-b">
+                    <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
+                    <p className="text-xs text-gray-500">{customer?.email}</p>
+                  </div>
+                  <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
+                    My Account
+                  </Link>
+                  <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
+                    My Orders
+                  </Link>
+                  <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
+                    Wishlist
+                  </Link>
+                  <button onClick={handleLogout} className="block w-full text-left py-2 text-sm text-red-600">
+                    Logout
+                  </button>
                 </div>
-                <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
-                  My Account
-                </Link>
-                <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
-                  My Orders
-                </Link>
-                <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
-                  Wishlist
-                </Link>
-                <button onClick={handleLogout} className="block w-full text-left py-2 text-sm text-red-600">
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
-                  Sign In
-                </Link>
-                <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
-                  Create Account
-                </Link>
-              </div>
-            )}
+              ) : (
+                <div className="space-y-2">
+                  <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
+                    Sign In
+                  </Link>
+                  <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block py-2 text-sm text-gray-700">
+                    Create Account
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* MOBILE SIDEBAR MENU */}
       {mobileMenuOpen && (
@@ -220,20 +300,6 @@ export function Header() {
             </div>
             
             <div className="p-4 space-y-4">
-              {isAuthenticated && (
-                <div className="pb-3 border-b">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">{customer?.name}</div>
-                      <div className="text-xs text-gray-500">{customer?.email}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               <div>
                 <h3 className="font-semibold text-gray-800 mb-2">Categories</h3>
                 <div className="space-y-1">
@@ -264,12 +330,6 @@ export function Header() {
                   </Link>
                 </div>
               </div>
-
-              {isAuthenticated && (
-                <button onClick={handleLogout} className="w-full mt-4 py-2 text-center text-red-600 border-t pt-4">
-                  Logout
-                </button>
-              )}
             </div>
           </div>
         </>

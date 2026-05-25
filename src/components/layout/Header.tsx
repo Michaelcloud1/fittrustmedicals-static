@@ -36,7 +36,6 @@ export function Header() {
     setIsClient(true);
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
@@ -109,12 +108,10 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-white shadow-sm w-full">
       <div className="border-b border-gray-100 bg-white">
         <div className="container mx-auto px-4 py-3">
-          {/* TOP ROW: Logo + Search + Icons */}
-          <div className="flex items-center justify-between gap-4">
+          {/* DESKTOP HEADER */}
+          <div className="hidden md:flex items-center justify-between gap-4">
             <Logo />
-
-            {/* Desktop Search Bar - lower z-index */}
-            <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-xl relative z-0">
+            <form onSubmit={handleSearch} className="flex-1 max-w-xl">
               <div className="relative">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -126,10 +123,7 @@ export function Header() {
                 />
               </div>
             </form>
-
-            {/* Right Icons - HIGHER z-index to appear above search bar */}
-            <div className="flex items-center gap-2 relative z-10">
-              {/* Account Dropdown */}
+            <div className="flex items-center gap-2">
               <div className="relative" ref={accountRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
@@ -141,8 +135,6 @@ export function Header() {
                   </span>
                   <ChevronDown size={14} className="hidden sm:block" />
                 </button>
-                
-                {/* Dropdown Menu - HIGHEST z-index */}
                 {accountDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-[9999]">
                     {isAuthenticated ? (
@@ -151,49 +143,26 @@ export function Header() {
                           <p className="font-semibold text-gray-800">{customer?.name || 'User'}</p>
                           <p className="text-xs text-gray-500">{customer?.email}</p>
                         </div>
-                        <Link 
-                          href="/account" 
-                          onClick={() => setAccountDropdownOpen(false)} 
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
+                        <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                           My Account
                         </Link>
-                        <Link 
-                          href="/orders" 
-                          onClick={() => setAccountDropdownOpen(false)} 
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
+                        <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                           My Orders
                         </Link>
-                        <Link 
-                          href="/wishlist" 
-                          onClick={() => setAccountDropdownOpen(false)} 
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
+                        <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                           Wishlist
                         </Link>
                         <div className="border-t border-gray-100 my-1"></div>
-                        <button 
-                          onClick={handleLogout} 
-                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                        >
+                        <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                           Logout
                         </button>
                       </>
                     ) : (
                       <>
-                        <Link 
-                          href="/login" 
-                          onClick={() => setAccountDropdownOpen(false)} 
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
+                        <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                           Sign In
                         </Link>
-                        <Link 
-                          href="/register" 
-                          onClick={() => setAccountDropdownOpen(false)} 
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
+                        <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                           Create Account
                         </Link>
                       </>
@@ -201,8 +170,6 @@ export function Header() {
                   </div>
                 )}
               </div>
-
-              {/* Cart Icon */}
               <Link href="/cart" className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
                 <ShoppingCart size={20} />
                 {cartItemCount > 0 && (
@@ -211,29 +178,90 @@ export function Header() {
                   </span>
                 )}
               </Link>
-
-              {/* Mobile Menu Button */}
-              <button 
-                onClick={() => setMobileMenuOpen(true)} 
-                className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Menu size={20} />
-              </button>
             </div>
           </div>
 
-          {/* Mobile Search Bar */}
-          <div className="md:hidden mt-3">
-            <form onSubmit={handleSearch} className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search products, brands and more..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full py-2.5 pl-9 pr-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
-              />
-            </form>
+          {/* MOBILE HEADER - Search Bar MOVED to BELOW the account dropdown */}
+          <div className="md:hidden">
+            {/* Row 1: Logo + Icons */}
+            <div className="flex items-center justify-between">
+              <Logo />
+              <div className="flex items-center gap-2">
+                {/* Account Icon - Click to open dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
+                    className="p-2 rounded-lg hover:bg-gray-100"
+                  >
+                    <User size={20} />
+                  </button>
+                  
+                  {/* Account Dropdown - Appears BELOW the header */}
+                  {accountDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-[9999]">
+                      {isAuthenticated ? (
+                        <>
+                          <div className="px-4 py-2 border-b">
+                            <p className="font-semibold text-gray-800 text-sm">{customer?.name || 'User'}</p>
+                            <p className="text-xs text-gray-500">{customer?.email}</p>
+                          </div>
+                          <Link href="/account" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            My Account
+                          </Link>
+                          <Link href="/orders" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            My Orders
+                          </Link>
+                          <Link href="/wishlist" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            Wishlist
+                          </Link>
+                          <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                            Logout
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <Link href="/login" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            Sign In
+                          </Link>
+                          <Link href="/register" onClick={() => setAccountDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            Create Account
+                          </Link>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Cart Icon */}
+                <Link href="/cart" className="relative p-2">
+                  <ShoppingCart size={20} />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </Link>
+
+                {/* Menu Button */}
+                <button onClick={() => setMobileMenuOpen(true)} className="p-2">
+                  <Menu size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Row 2: Search Bar - BELOW everything (no overlap) */}
+            <div className="mt-4">
+              <form onSubmit={handleSearch} className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search products, brands and more..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full py-2.5 pl-9 pr-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50"
+                />
+              </form>
+            </div>
           </div>
         </div>
       </div>

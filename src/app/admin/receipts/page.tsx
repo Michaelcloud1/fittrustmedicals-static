@@ -47,7 +47,6 @@ export default function ReceiptsManagementPage() {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
-  // Fetch orders from backend
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -72,14 +71,12 @@ export default function ReceiptsManagementPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter orders based on search
   const filteredOrders = orders.filter(order =>
     order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     order.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     `${order.user?.firstName} ${order.user?.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Check if receipt is ready (payment confirmed)
   const isReceiptReady = (order: Order) => {
     return order.paymentStatus === 'PAID';
   };
@@ -97,6 +94,7 @@ export default function ReceiptsManagementPage() {
     
     setSending(true);
     let successCount = 0;
+    const failedOrders = [];
     
     for (const orderId of selectedOrders) {
       const order = orders.find(o => o.id === orderId);
@@ -104,23 +102,34 @@ export default function ReceiptsManagementPage() {
         try {
           const response = await fetch(`${BACKEND_URL}/api/receipts/send/${orderId}`, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
           });
           
-          if (response.ok) {
+          const data = await response.json();
+          
+          if (response.ok && data.success) {
             successCount++;
+          } else {
+            failedOrders.push({ orderId, error: data.error });
           }
         } catch (error) {
-          console.error(`Failed to send receipt for order ${orderId}:`, error);
+          failedOrders.push({ orderId, error: 'Network error' });
         }
+      } else {
+        failedOrders.push({ orderId, error: 'Order not paid' });
       }
     }
     
-    alert(`Sent ${successCount} of ${selectedOrders.length} receipts successfully!`);
+    if (failedOrders.length > 0) {
+      alert(`Sent ${successCount} of ${selectedOrders.length} receipts. ${failedOrders.length} failed. Check console for details.`);
+    } else {
+      alert(`✅ Successfully sent ${successCount} receipts!`);
+    }
+    
     setSelectedOrders([]);
     setSending(false);
   };
 
-  // Handle PDF download
   const handleDownloadPDF = async (order: Order) => {
     if (!isReceiptReady(order)) {
       alert('Receipt not available. Order payment not confirmed yet.');
@@ -129,9 +138,8 @@ export default function ReceiptsManagementPage() {
 
     setDownloadingId(order.id);
     try {
-      // Open PDF in new tab or download
-      const pdfUrl = `${BACKEND_URL}/api/receipts/download/${order.id}`;
-      window.open(pdfUrl, '_blank');
+      const downloadUrl = `${BACKEND_URL}/api/receipts/download/${order.id}`;
+      window.open(downloadUrl, '_blank');
     } catch (error) {
       console.error('Download error:', error);
       alert('Failed to download receipt. Please try again.');
@@ -140,7 +148,6 @@ export default function ReceiptsManagementPage() {
     }
   };
 
-  // Handle sending single receipt
   const handleSendReceipt = async (order: Order) => {
     if (!isReceiptReady(order)) {
       alert('Cannot send receipt. Order payment not confirmed yet.');
@@ -150,16 +157,19 @@ export default function ReceiptsManagementPage() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/receipts/send/${order.id}`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
       });
       
-      if (response.ok) {
-        alert(`Receipt sent to ${order.user?.email}`);
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        alert(`✅ Receipt sent successfully to ${order.user?.email}`);
       } else {
-        alert('Failed to send receipt. Please try again.');
+        alert(`❌ Failed: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Send error:', error);
-      alert('Failed to send receipt.');
+      alert('Failed to send receipt. Please try again.');
     }
   };
 
@@ -238,7 +248,6 @@ export default function ReceiptsManagementPage() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
@@ -249,7 +258,6 @@ export default function ReceiptsManagementPage() {
             <Receipt className="w-8 h-8 text-blue-500" />
           </div>
         </div>
-
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
@@ -259,7 +267,6 @@ export default function ReceiptsManagementPage() {
             <CheckCircle className="w-8 h-8 text-green-500" />
           </div>
         </div>
-
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
@@ -271,7 +278,6 @@ export default function ReceiptsManagementPage() {
         </div>
       </div>
 
-      {/* Search */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -285,7 +291,6 @@ export default function ReceiptsManagementPage() {
         </div>
       </div>
 
-      {/* Receipts Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -360,7 +365,7 @@ export default function ReceiptsManagementPage() {
                         <>
                           <button
                             onClick={() => handleSendReceipt(order)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Send Receipt Email"
                           >
                             <Mail className="w-4 h-4" />
@@ -368,8 +373,8 @@ export default function ReceiptsManagementPage() {
                           <button
                             onClick={() => handleDownloadPDF(order)}
                             disabled={downloadingId === order.id}
-                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                            title="Download PDF"
+                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Download Receipt"
                           >
                             {downloadingId === order.id ? (
                               <RefreshCw className="w-4 h-4 animate-spin" />

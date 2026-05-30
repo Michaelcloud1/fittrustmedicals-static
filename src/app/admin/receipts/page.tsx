@@ -9,7 +9,8 @@ import {
   Clock,
   Mail,
   Download,
-  Search
+  Search,
+  RefreshCw
 } from 'lucide-react';
 
 interface OrderItem {
@@ -42,6 +43,7 @@ export default function ReceiptsManagementPage() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
@@ -66,7 +68,6 @@ export default function ReceiptsManagementPage() {
 
   useEffect(() => {
     fetchOrders();
-    // Refresh every 30 seconds
     const interval = setInterval(fetchOrders, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -74,11 +75,12 @@ export default function ReceiptsManagementPage() {
   // Filter orders based on search
   const filteredOrders = orders.filter(order =>
     order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.user?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    order.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    `${order.user?.firstName} ${order.user?.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Calculate receipt sent status (paid orders are considered "sent")
-  const isReceiptSent = (order: Order) => {
+  // Check if receipt is ready (payment confirmed)
+  const isReceiptReady = (order: Order) => {
     return order.paymentStatus === 'PAID';
   };
 
@@ -91,35 +93,82 @@ export default function ReceiptsManagementPage() {
   };
 
   const handleBulkSend = async () => {
+    if (selectedOrders.length === 0) return;
+    
     setSending(true);
-    try {
-      // For each selected order, send receipt email
-      for (const orderId of selectedOrders) {
-        const order = orders.find(o => o.id === orderId);
-        if (order && isReceiptSent(order)) {
-          // Call your backend to send receipt email
-          const response = await fetch(`${BACKEND_URL}/api/orders/${orderId}/send-receipt`, {
+    let successCount = 0;
+    
+    for (const orderId of selectedOrders) {
+      const order = orders.find(o => o.id === orderId);
+      if (order && isReceiptReady(order)) {
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/receipts/send/${orderId}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: order.user?.email,
-              orderId: order.id,
-              amount: order.totalAmount,
-            }),
           });
           
-          if (!response.ok) {
-            console.error(`Failed to send receipt for order ${orderId}`);
+          if (response.ok) {
+            successCount++;
           }
+        } catch (error) {
+          console.error(`Failed to send receipt for order ${orderId}:`, error);
         }
       }
-      alert(`Receipts sent to ${selectedOrders.length} customer(s)!`);
-      setSelectedOrders([]);
+    }
+    
+    alert(`Sent ${successCount} of ${selectedOrders.length} receipts successfully!`);
+    setSelectedOrders([]);
+    setSending(false);
+  };
+
+  // Handle PDF download
+  const handleDownloadPDF = async (order: Order) => {
+    if (!isReceiptReady(order)) {
+      alert('Receipt not available. Order payment not confirmed yet.');
+      return;
+    }
+
+    setDownloadingId(order.id);
+    try {
+      // Open PDF in new tab or download
+      const pdfUrl = `${BACKEND_URL}/api/receipts/download/${order.id}`;
+      window.open(pdfUrl, '_blank');
     } catch (error) {
-      console.error('Error sending receipts:', error);
-      alert('Failed to send some receipts. Please try again.');
+      console.error('Download error:', error);
+      alert('Failed to download receipt. Please try again.');
     } finally {
-      setSending(false);
+      setDownloadingId(null);
+    }
+  };
+
+  // Handle sending single receipt
+  const handleSendReceipt = async (order: Order) => {
+    if (!isReceiptReady(order)) {
+      alert('Cannot send receipt. Order payment not confirmed yet.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/receipts/send/${order.id}`, {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        alert(`Receipt sent to ${order.user?.email}`);
+      } else {
+        alert('Failed to send receipt. Please try again.');
+      }
+    } catch (error) {
+      console.error('Send error:', error);
+      alert('Failed to send receipt.');
+    }
+  };
+
+  const selectAll = () => {
+    const selectableOrders = filteredOrders.filter(o => isReceiptReady(o));
+    if (selectedOrders.length === selectableOrders.length) {
+      setSelectedOrders([]);
+    } else {
+      setSelectedOrders(selectableOrders.map(o => o.id));
     }
   };
 
@@ -131,35 +180,10 @@ export default function ReceiptsManagementPage() {
     });
   };
 
-  const handleDownloadPDF = async (order: Order) => {
-    // This would call your backend to generate PDF
-    // For now, just alert
-    alert(`PDF download for order ${order.id.slice(0, 8)} will be available soon.`);
-  };
-
-  const selectAll = () => {
-    if (selectedOrders.length === filteredOrders.length) {
-      setSelectedOrders([]);
-    } else {
-      setSelectedOrders(filteredOrders.map(o => o.id));
-    }
-  };
-
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Receipts & Invoices</h1>
-            <p className="text-gray-500 mt-1">Loading receipts...</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-500">Fetching orders...</p>
-          </div>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -167,12 +191,6 @@ export default function ReceiptsManagementPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Receipts & Invoices</h1>
-            <p className="text-gray-500 mt-1">Manage and send automated receipts to customers</p>
-          </div>
-        </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12">
           <div className="text-center text-red-600">
             <p>{error}</p>
@@ -188,8 +206,9 @@ export default function ReceiptsManagementPage() {
     );
   }
 
-  const sentCount = orders.filter(o => isReceiptSent(o)).length;
-  const pendingCount = orders.filter(o => !isReceiptSent(o)).length;
+  const sentCount = orders.filter(o => isReceiptReady(o)).length;
+  const pendingCount = orders.filter(o => !isReceiptReady(o)).length;
+  const selectableOrders = filteredOrders.filter(o => isReceiptReady(o));
 
   return (
     <div className="space-y-6">
@@ -198,16 +217,25 @@ export default function ReceiptsManagementPage() {
           <h1 className="text-2xl font-bold text-gray-900">Receipts & Invoices</h1>
           <p className="text-gray-500 mt-1">Manage and send automated receipts to customers</p>
         </div>
-        {selectedOrders.length > 0 && (
+        <div className="flex gap-2">
           <button
-            onClick={handleBulkSend}
-            disabled={sending}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            onClick={fetchOrders}
+            className="flex items-center space-x-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
           >
-            <Send className="w-4 h-4" />
-            <span>{sending ? 'Sending...' : `Send ${selectedOrders.length} Receipts`}</span>
+            <RefreshCw className="w-4 h-4" />
+            <span>Refresh</span>
           </button>
-        )}
+          {selectedOrders.length > 0 && (
+            <button
+              onClick={handleBulkSend}
+              disabled={sending}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              <Send className="w-4 h-4" />
+              <span>{sending ? 'Sending...' : `Send ${selectedOrders.length} Receipts`}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
@@ -215,7 +243,7 @@ export default function ReceiptsManagementPage() {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Receipts</p>
+              <p className="text-sm text-gray-500">Total Orders</p>
               <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
             </div>
             <Receipt className="w-8 h-8 text-blue-500" />
@@ -225,7 +253,7 @@ export default function ReceiptsManagementPage() {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Sent (Paid)</p>
+              <p className="text-sm text-gray-500">Receipts Ready</p>
               <p className="text-2xl font-bold text-green-600">{sentCount}</p>
             </div>
             <CheckCircle className="w-8 h-8 text-green-500" />
@@ -235,7 +263,7 @@ export default function ReceiptsManagementPage() {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Pending</p>
+              <p className="text-sm text-gray-500">Pending Payment</p>
               <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
             </div>
             <Clock className="w-8 h-8 text-yellow-500" />
@@ -249,7 +277,7 @@ export default function ReceiptsManagementPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search by order ID or customer email..."
+            placeholder="Search by order ID, customer name, or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -267,7 +295,7 @@ export default function ReceiptsManagementPage() {
                   <input 
                     type="checkbox" 
                     className="rounded border-gray-300"
-                    checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
+                    checked={selectableOrders.length > 0 && selectedOrders.length === selectableOrders.length}
                     onChange={selectAll}
                   />
                 </th>
@@ -288,24 +316,19 @@ export default function ReceiptsManagementPage() {
                       className="rounded border-gray-300"
                       checked={selectedOrders.includes(order.id)}
                       onChange={() => toggleSelection(order.id)}
-                      disabled={!isReceiptSent(order)}
+                      disabled={!isReceiptReady(order)}
                     />
                   </td>
                   <td className="px-6 py-4">
                     <p className="font-medium text-gray-900">#{order.id.slice(0, 12)}...</p>
-                    <p className="text-sm text-gray-500">
-                      {formatDate(order.createdAt)}
-                    </p>
+                    <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center space-x-2">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {order.user?.firstName} {order.user?.lastName}
-                        </p>
-                        <p className="text-xs text-gray-500">{order.user?.email}</p>
-                      </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {order.user?.firstName} {order.user?.lastName}
+                      </p>
+                      <p className="text-xs text-gray-500">{order.user?.email}</p>
                     </div>
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-900">
@@ -315,10 +338,10 @@ export default function ReceiptsManagementPage() {
                     {formatDate(order.createdAt)}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`flex items-center space-x-1 text-sm ${
-                      isReceiptSent(order) ? 'text-green-600' : 'text-yellow-600'
+                    <span className={`inline-flex items-center space-x-1 text-sm ${
+                      isReceiptReady(order) ? 'text-green-600' : 'text-yellow-600'
                     }`}>
-                      {isReceiptSent(order) ? (
+                      {isReceiptReady(order) ? (
                         <>
                           <CheckCircle className="w-4 h-4" />
                           <span>Paid / Receipt Ready</span>
@@ -333,25 +356,30 @@ export default function ReceiptsManagementPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
-                      {isReceiptSent(order) && (
+                      {isReceiptReady(order) && (
                         <>
-                          <Link
-                            href={`/admin/orders/${order.id}`}
+                          <button
+                            onClick={() => handleSendReceipt(order)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                            title="View Order"
+                            title="Send Receipt Email"
                           >
-                            <Receipt className="w-4 h-4" />
-                          </Link>
+                            <Mail className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => handleDownloadPDF(order)}
+                            disabled={downloadingId === order.id}
                             className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                             title="Download PDF"
                           >
-                            <Download className="w-4 h-4" />
+                            {downloadingId === order.id ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
                           </button>
                         </>
                       )}
-                      {!isReceiptSent(order) && (
+                      {!isReceiptReady(order) && (
                         <span className="text-xs text-gray-400">Wait for payment</span>
                       )}
                     </div>

@@ -1,13 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { 
   Receipt, 
-  Send,
   CheckCircle,
   Clock,
-  Mail,
   Download,
   Search,
   RefreshCw
@@ -39,8 +36,6 @@ interface Order {
 export default function ReceiptsManagementPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
-  const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -81,55 +76,6 @@ export default function ReceiptsManagementPage() {
     return order.paymentStatus === 'PAID';
   };
 
-  const toggleSelection = (orderId: string) => {
-    setSelectedOrders(prev => 
-      prev.includes(orderId) 
-        ? prev.filter(id => id !== orderId)
-        : [...prev, orderId]
-    );
-  };
-
-  const handleBulkSend = async () => {
-    if (selectedOrders.length === 0) return;
-    
-    setSending(true);
-    let successCount = 0;
-    const failedOrders = [];
-    
-    for (const orderId of selectedOrders) {
-      const order = orders.find(o => o.id === orderId);
-      if (order && isReceiptReady(order)) {
-        try {
-          const response = await fetch(`${BACKEND_URL}/api/receipts/send/${orderId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-          });
-          
-          const data = await response.json();
-          
-          if (response.ok && data.success) {
-            successCount++;
-          } else {
-            failedOrders.push({ orderId, error: data.error });
-          }
-        } catch (error) {
-          failedOrders.push({ orderId, error: 'Network error' });
-        }
-      } else {
-        failedOrders.push({ orderId, error: 'Order not paid' });
-      }
-    }
-    
-    if (failedOrders.length > 0) {
-      alert(`Sent ${successCount} of ${selectedOrders.length} receipts. ${failedOrders.length} failed. Check console for details.`);
-    } else {
-      alert(`✅ Successfully sent ${successCount} receipts!`);
-    }
-    
-    setSelectedOrders([]);
-    setSending(false);
-  };
-
   const handleDownloadPDF = async (order: Order) => {
     if (!isReceiptReady(order)) {
       alert('Receipt not available. Order payment not confirmed yet.');
@@ -145,40 +91,6 @@ export default function ReceiptsManagementPage() {
       alert('Failed to download receipt. Please try again.');
     } finally {
       setDownloadingId(null);
-    }
-  };
-
-  const handleSendReceipt = async (order: Order) => {
-    if (!isReceiptReady(order)) {
-      alert('Cannot send receipt. Order payment not confirmed yet.');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/receipts/send/${order.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        alert(`✅ Receipt sent successfully to ${order.user?.email}`);
-      } else {
-        alert(`❌ Failed: ${data.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Send error:', error);
-      alert('Failed to send receipt. Please try again.');
-    }
-  };
-
-  const selectAll = () => {
-    const selectableOrders = filteredOrders.filter(o => isReceiptReady(o));
-    if (selectedOrders.length === selectableOrders.length) {
-      setSelectedOrders([]);
-    } else {
-      setSelectedOrders(selectableOrders.map(o => o.id));
     }
   };
 
@@ -218,14 +130,13 @@ export default function ReceiptsManagementPage() {
 
   const sentCount = orders.filter(o => isReceiptReady(o)).length;
   const pendingCount = orders.filter(o => !isReceiptReady(o)).length;
-  const selectableOrders = filteredOrders.filter(o => isReceiptReady(o));
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Receipts & Invoices</h1>
-          <p className="text-gray-500 mt-1">Manage and send automated receipts to customers</p>
+          <p className="text-gray-500 mt-1">View and download payment receipts</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -235,16 +146,6 @@ export default function ReceiptsManagementPage() {
             <RefreshCw className="w-4 h-4" />
             <span>Refresh</span>
           </button>
-          {selectedOrders.length > 0 && (
-            <button
-              onClick={handleBulkSend}
-              disabled={sending}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-              <span>{sending ? 'Sending...' : `Send ${selectedOrders.length} Receipts`}</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -296,14 +197,6 @@ export default function ReceiptsManagementPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-6 py-4 text-left">
-                  <input 
-                    type="checkbox" 
-                    className="rounded border-gray-300"
-                    checked={selectableOrders.length > 0 && selectedOrders.length === selectableOrders.length}
-                    onChange={selectAll}
-                  />
-                </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Order ID</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Customer</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Amount</th>
@@ -315,15 +208,6 @@ export default function ReceiptsManagementPage() {
             <tbody className="divide-y">
               {filteredOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <input 
-                      type="checkbox" 
-                      className="rounded border-gray-300"
-                      checked={selectedOrders.includes(order.id)}
-                      onChange={() => toggleSelection(order.id)}
-                      disabled={!isReceiptReady(order)}
-                    />
-                  </td>
                   <td className="px-6 py-4">
                     <p className="font-medium text-gray-900">#{order.id.slice(0, 12)}...</p>
                     <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
@@ -362,27 +246,18 @@ export default function ReceiptsManagementPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
                       {isReceiptReady(order) && (
-                        <>
-                          <button
-                            onClick={() => handleSendReceipt(order)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Send Receipt Email"
-                          >
-                            <Mail className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDownloadPDF(order)}
-                            disabled={downloadingId === order.id}
-                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Download Receipt"
-                          >
-                            {downloadingId === order.id ? (
-                              <RefreshCw className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Download className="w-4 h-4" />
-                            )}
-                          </button>
-                        </>
+                        <button
+                          onClick={() => handleDownloadPDF(order)}
+                          disabled={downloadingId === order.id}
+                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Download Receipt"
+                        >
+                          {downloadingId === order.id ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Download className="w-4 h-4" />
+                          )}
+                        </button>
                       )}
                       {!isReceiptReady(order) && (
                         <span className="text-xs text-gray-400">Wait for payment</span>

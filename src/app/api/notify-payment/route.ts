@@ -1,186 +1,202 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.GMAIL_USERNAME,
-    pass: process.env.GMAIL_PASSWORD,
-  },
-});
+// Create transporter with fallback for both env naming conventions
+const getTransporter = () => {
+  const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USERNAME;
+  const emailPass = process.env.EMAIL_PASS || process.env.GMAIL_PASSWORD;
+  
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: emailUser,
+      pass: emailPass,
+    },
+  });
+};
+
+const formatNaira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 
 export async function POST(request: NextRequest) {
   try {
     const { orderId, customerName, customerEmail, phoneNumber, totalAmount, items } = await request.json();
 
-    console.log('========== EMAIL NOTIFICATION ==========');
+    console.log('========== ORDER PLACEMENT NOTIFICATION ==========');
     console.log('Order ID:', orderId);
     console.log('Customer Name:', customerName);
     console.log('Customer Email:', customerEmail);
     console.log('Phone:', phoneNumber);
     console.log('Amount:', totalAmount);
-    console.log('Items:', items);
-    console.log('========================================');
+    console.log('Items:', items.length);
+    console.log('==================================================');
+
+    const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USERNAME;
+    const transporter = getTransporter();
 
     // Generate items table HTML
     const itemsHtml = (items || []).map((item: any) => `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₦${item.price.toLocaleString()}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₦{(item.price * item.quantity).toLocaleString()}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.name}</td>
+        <td style="padding: 12px; text-align: center; border-bottom: 1px solid #e5e7eb;">${item.quantity}</td>
+        <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">${formatNaira(item.price)}</td>
+        <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">${formatNaira(item.price * item.quantity)}</td>
       </tr>
     `).join('');
 
     // ============================================
-    // 1. EMAIL TO CUSTOMER (Rich Content)
+    // EMAIL 1: TO CUSTOMER - Order Received (Awaiting Verification)
     // ============================================
     const customerHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: #2c7da0; padding: 20px; text-align: center;">
-          <h1 style="color: white; margin: 0;">FitTrust Medicals</h1>
-          <p style="color: #e0f0f5; margin: 5px 0 0;">Payment Notification Received</p>
-        </div>
-        
-        <div style="padding: 20px; background: #f9f9f9;">
-          <h2 style="color: #2c7da0;">Thank You for Your Payment, ${customerName}!</h2>
-          <p>We have received your payment notification for <strong>Order #${orderId}</strong>.</p>
-          
-          <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin: 0 0 10px; color: #2c7da0;">Order Details</h3>
-            <p><strong>Order ID:</strong> ${orderId}</p>
-            <p><strong>Amount:</strong> ₦${totalAmount.toLocaleString()}</p>
-            <p><strong>Status:</strong> <span style="color: #e67e22;">Awaiting Verification</span></p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Order Received - Fittrust Medicals</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f4f4f4;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <div style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); padding: 30px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Fittrust Medicals</h1>
+            <p style="color: #dbeafe; margin: 10px 0 0;">Healthcare Supplies</p>
           </div>
           
-          <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin: 0 0 10px; color: #2c7da0;">Items Ordered</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background: #2c7da0; color: white;">
-                  <th style="padding: 8px; text-align: left;">Product</th>
-                  <th style="padding: 8px; text-align: center;">Qty</th>
-                  <th style="padding: 8px; text-align: right;">Unit Price</th>
-                  <th style="padding: 8px; text-align: right;">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${itemsHtml}
-              </tbody>
-              <tfoot>
-                <tr style="background: #eee;">
-                  <td colspan="3" style="padding: 10px; text-align: right;"><strong>Grand Total:</strong></td>
-                  <td style="padding: 10px; text-align: right;"><strong>₦${totalAmount.toLocaleString()}</strong></td>
-                </tr>
-              </tfoot>
-            </table>
+          <div style="padding: 30px;">
+            <h2 style="color: #1f2937;">Thank You for Your Order, ${customerName}!</h2>
+            <p>We have received your payment notification for <strong>Order #${orderId}</strong>.</p>
+            
+            <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+              <p style="margin: 5px 0;"><strong>Order ID:</strong> ${orderId}</p>
+              <p style="margin: 5px 0;"><strong>Amount:</strong> ${formatNaira(totalAmount)}</p>
+              <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: #f59e0b;">⏳ Awaiting Verification</span></p>
+            </div>
+            
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; margin: 20px 0; overflow: hidden;">
+              <h3 style="margin: 0; padding: 15px; background: #f9fafb; border-bottom: 1px solid #e5e7eb;">Items Ordered</h3>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="background: #f3f4f6;">
+                      <th style="padding: 12px; text-align: left;">Product</th>
+                      <th style="padding: 12px; text-align: center;">Qty</th>
+                      <th style="padding: 12px; text-align: right;">Unit Price</th>
+                      <th style="padding: 12px; text-align: right;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>${itemsHtml}</tbody>
+                  <tfoot>
+                    <tr style="background: #f9fafb;">
+                      <td colspan="3" style="padding: 15px; text-align: right;"><strong>Grand Total:</strong></td>
+                      <td style="padding: 15px; text-align: right;"><strong>${formatNaira(totalAmount)}</strong></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+            
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+              <p style="margin: 0 0 10px 0;"><strong>📌 Next Steps:</strong></p>
+              <p style="margin: 5px 0;">1. Our admin will verify your payment</p>
+              <p style="margin: 5px 0;">2. You will receive a confirmation email once verified</p>
+              <p style="margin: 5px 0;">3. Your order will be processed for delivery</p>
+            </div>
+            
+            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin: 0 0 10px 0;">🏦 Bank Transfer Details</h3>
+              <p style="margin: 5px 0;"><strong>Bank:</strong> GTBank</p>
+              <p style="margin: 5px 0;"><strong>Account Name:</strong> Fittrust Medicals</p>
+              <p style="margin: 5px 0;"><strong>Account Number:</strong> 0123456789</p>
+              <p style="margin: 5px 0;"><strong>Amount:</strong> ${formatNaira(totalAmount)}</p>
+              <p style="margin: 5px 0;"><strong>Reference:</strong> Use ${orderId} as reference</p>
+            </div>
           </div>
           
-          <p>Our admin will verify your payment and send you a confirmation email shortly.</p>
-          <p>You will receive another email once your payment is confirmed.</p>
-          <p style="font-size: 12px; color: #666; margin-top: 20px;">FitTrust Medicals – Your trusted health partner</p>
+          <div style="background: #f3f4f6; padding: 20px; text-align: center; font-size: 12px; color: #6b7280;">
+            <p>Thank you for shopping with Fittrust Medicals!</p>
+            <p>Questions? Contact: support@fittrustmedicals.com</p>
+            <p>© ${new Date().getFullYear()} Fittrust Medicals. All rights reserved.</p>
+          </div>
         </div>
-        
-        <div style="background: #eee; padding: 15px; text-align: center; font-size: 12px; color: #666;">
-          <p>Need help? Contact us: fittrustsurgical56@gmail.com</p>
-        </div>
-      </div>
+      </body>
+      </html>
     `;
 
     // ============================================
-    // 2. EMAIL TO ADMIN (Rich Content with Customer Details)
+    // EMAIL 2: TO ADMIN - New Order Notification
     // ============================================
     const adminHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px;">
-        <div style="background: #2c7da0; padding: 20px; text-align: center;">
-          <h1 style="color: white;">💰 Payment Notification</h1>
-        </div>
-        
-        <div style="padding: 20px;">
-          <h3 style="color: #2c7da0;">Customer Information</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-            <tr>
-              <td style="padding: 5px; width: 120px;"><strong>Name:</strong></td>
-              <td style="padding: 5px;">${customerName}</td>
-            </tr>
-            <tr>
-              <td style="padding: 5px;"><strong>Email:</strong></td>
-              <td style="padding: 5px;">${customerEmail}</td>
-            </tr>
-            <tr>
-              <td style="padding: 5px;"><strong>Phone:</strong></td>
-              <td style="padding: 5px;">${phoneNumber || 'Not provided'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 5px;"><strong>Order ID:</strong></td>
-              <td style="padding: 5px;">${orderId}</td>
-            </tr>
-            <tr>
-              <td style="padding: 5px;"><strong>Amount:</strong></td>
-              <td style="padding: 5px;"><strong>₦${totalAmount.toLocaleString()}</strong></td>
-            </tr>
-          </table>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>New Order - Admin Notification</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f4f4f4;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">💰 New Payment Notification</h1>
+          </div>
           
-          <h3 style="color: #2c7da0;">Items Ordered</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-            <thead>
-              <tr style="background: #2c7da0; color: white;">
-                <th style="padding: 8px; text-align: left;">Product</th>
-                <th style="padding: 8px; text-align: center;">Qty</th>
-                <th style="padding: 8px; text-align: right;">Unit Price</th>
-                <th style="padding: 8px; text-align: right;">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-              <tr style="background: #f0f0f0;">
-                <td colspan="3" style="padding: 10px; text-align: right;"><strong>Total:</strong></td>
-                <td style="padding: 10px; text-align: right;"><strong>₦${totalAmount.toLocaleString()}</strong></td>
-              </tr>
-            </tbody>
-          </table>
-          
-          <p><strong>Status:</strong> Payment made, awaiting verification</p>
-          <hr />
-          <p>Please log in to the admin dashboard to verify this payment.</p>
-          <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/orders" style="background: #2c7da0; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Orders</a></p>
+          <div style="padding: 25px;">
+            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="margin: 0 0 15px 0; color: #1e3a8a;">Customer Information</h3>
+              <p style="margin: 8px 0;"><strong>Name:</strong> ${customerName}</p>
+              <p style="margin: 8px 0;"><strong>Email:</strong> ${customerEmail}</p>
+              <p style="margin: 8px 0;"><strong>Phone:</strong> ${phoneNumber || 'Not provided'}</p>
+              <p style="margin: 8px 0;"><strong>Order ID:</strong> ${orderId}</p>
+              <p style="margin: 8px 0;"><strong>Amount:</strong> <span style="color: #10b981; font-size: 18px;">${formatNaira(totalAmount)}</span></p>
+            </div>
+            
+            <div style="border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+              <h3 style="margin: 0; padding: 15px; background: #f9fafb; border-bottom: 1px solid #e5e7eb;">Items Ordered</h3>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="background: #f3f4f6;">
+                      <th style="padding: 12px; text-align: left;">Product</th>
+                      <th style="padding: 12px; text-align: center;">Qty</th>
+                      <th style="padding: 12px; text-align: right;">Price</th>
+                      <th style="padding: 12px; text-align: right;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>${itemsHtml}</tbody>
+                </table>
+              </div>
+            </div>
+            
+            <p><strong>Status:</strong> <span style="color: #f59e0b;">⏳ Payment made, awaiting verification</span></p>
+            
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/orders" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">View Order in Admin →</a>
+            </div>
+          </div>
         </div>
-      </div>
+      </body>
+      </html>
     `;
 
     // Send email to CUSTOMER
-    try {
-      await transporter.sendMail({
-        from: `"FitTrust Medicals" <${process.env.GMAIL_USERNAME}>`,
-        to: customerEmail,
-        subject: `✅ Payment Received - Order ${orderId}`,
-        html: customerHtml,
-      });
-      console.log('✅ Customer email sent to:', customerEmail);
-    } catch (customerError) {
-      console.error('❌ Failed to send customer email:', customerError);
-    }
+    await transporter.sendMail({
+      from: `"Fittrust Medicals" <${emailUser}>`,
+      to: customerEmail,
+      subject: `✅ Order Received - ${orderId}`,
+      html: customerHtml,
+    });
+    console.log('✅ Customer order notification sent to:', customerEmail);
 
     // Send email to ADMIN
-    try {
-      await transporter.sendMail({
-        from: `"FitTrust Medicals" <${process.env.GMAIL_USERNAME}>`,
-        to: process.env.ADMIN_EMAIL || 'fittrustsurgical56@gmail.com',
-        subject: `💰 Payment Notification - ${orderId}`,
-        html: adminHtml,
-      });
-      console.log('✅ Admin email sent to:', process.env.ADMIN_EMAIL);
-    } catch (adminError) {
-      console.error('❌ Failed to send admin email:', adminError);
-    }
-
-    console.log('========================================');
+    await transporter.sendMail({
+      from: `"Fittrust Medicals" <${emailUser}>`,
+      to: process.env.ADMIN_EMAIL || 'fittrustsurgical56@gmail.com',
+      subject: `💰 New Order Payment - ${orderId}`,
+      html: adminHtml,
+    });
+    console.log('✅ Admin notification sent');
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Notifications sent to customer and admin' 
+      message: 'Order notifications sent to customer and admin' 
     });
   } catch (error) {
     console.error('Notification error:', error);

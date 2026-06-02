@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Eye, Download, Filter, CheckCircle, XCircle, RefreshCw, Trash2, Mail, Send } from 'lucide-react';
+import { Eye, Download, CheckCircle, RefreshCw, Trash2, Mail } from 'lucide-react';
 import Link from 'next/link';
 
 interface OrderItem {
@@ -61,8 +61,8 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // ✅ NEW: Function to send receipt email
-  const sendReceiptEmail = async (order: Order) => {
+  // Function to send payment confirmation receipt email
+  const sendPaymentConfirmationEmail = async (order: Order) => {
     setSendingEmailId(order.id);
     
     try {
@@ -82,9 +82,9 @@ export default function AdminOrdersPage() {
         price: item.unitPrice || item.price || 0,
       }));
 
-      console.log('📧 Sending receipt to:', customerEmail);
+      console.log('📧 Sending payment confirmation receipt to:', customerEmail);
       console.log('📦 Order details:', {
-        orderNumber: order.id,
+        orderNumber: order.id.slice(0, 12),
         total: order.totalAmount,
         itemsCount: items.length
       });
@@ -105,7 +105,7 @@ export default function AdminOrdersPage() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        console.log('✅ Receipt email sent successfully to:', customerEmail);
+        console.log('✅ Payment confirmation receipt sent to:', customerEmail);
         return true;
       } else {
         console.error('Failed to send email:', data.error);
@@ -119,15 +119,14 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // ✅ UPDATED: Confirm payment with email notification
+  // Confirm payment with receipt email
   const handleConfirmPayment = async (orderId: string) => {
-    if (!confirm('Confirm payment for this order? This will mark it as PAID and send a receipt email to the customer.')) {
+    if (!confirm('Confirm payment for this order? The customer will receive a receipt email.')) {
       return;
     }
 
     setConfirmingOrderId(orderId);
     try {
-      // Find the order first
       const order = orders.find(o => o.id === orderId);
       if (!order) {
         alert('Order not found');
@@ -145,13 +144,13 @@ export default function AdminOrdersPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Send receipt email after payment confirmation
-        const emailSent = await sendReceiptEmail(order);
+        // Send payment confirmation receipt email
+        const emailSent = await sendPaymentConfirmationEmail(order);
         
         if (emailSent) {
-          alert(`✅ Payment confirmed! Receipt has been sent to ${order.user?.email}`);
+          alert(`✅ Payment confirmed! Receipt sent to ${order.user?.email}`);
         } else {
-          alert(`⚠️ Payment confirmed! But receipt email could not be sent to ${order.user?.email}. Please check email configuration.`);
+          alert(`⚠️ Payment confirmed! But receipt email could not be sent. Please check email configuration.`);
         }
         
         fetchOrders(); // Refresh the orders list
@@ -166,13 +165,13 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // ✅ NEW: Function to manually resend receipt email
+  // Resend receipt email for paid orders
   const handleResendReceipt = async (order: Order) => {
     if (!confirm(`Resend receipt email to ${order.user?.email}?`)) {
       return;
     }
 
-    const emailSent = await sendReceiptEmail(order);
+    const emailSent = await sendPaymentConfirmationEmail(order);
     
     if (emailSent) {
       alert(`✅ Receipt resent successfully to ${order.user?.email}`);
@@ -434,8 +433,8 @@ export default function AdminOrdersPage() {
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     No orders found
-                   </td>
-                 </tr>
+                  </td>
+                </tr>
               ) : (
                 filteredOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50">
@@ -489,7 +488,6 @@ export default function AdminOrdersPage() {
                           </button>
                         )}
                         
-                        {/* ✅ NEW: Resend Receipt button for paid orders */}
                         {order.paymentStatus === 'PAID' && (
                           <button
                             onClick={() => handleResendReceipt(order)}

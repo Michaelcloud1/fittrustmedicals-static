@@ -23,7 +23,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
-  const { customer, addOrder } = useAuthStore(); // ✅ Added addOrder here
+  const { customer, addOrder } = useAuthStore();
   
   const [isMounted, setIsMounted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -85,6 +85,38 @@ export default function CheckoutPage() {
     return true;
   };
 
+  // Send order placement emails to customer and admin
+  const sendOrderPlacementEmails = async (orderData: any, customerData: any) => {
+    try {
+      console.log('📧 Sending order placement emails...');
+      
+      const response = await fetch('/api/notify-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: orderData.orderNumber || orderData.id.slice(0, 12),
+          customerName: customerData.fullName,
+          customerEmail: customerData.email,
+          phoneNumber: customerData.phone,
+          totalAmount: orderData.totalAmount || total,
+          items: items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+        }),
+      });
+
+      if (response.ok) {
+        console.log('✅ Order placement emails sent successfully');
+      } else {
+        console.error('Failed to send order placement emails');
+      }
+    } catch (error) {
+      console.error('Error sending order placement emails:', error);
+    }
+  };
+
   // Create order and show bank transfer details
   const createOrder = async () => {
     if (!validateForm()) {
@@ -139,14 +171,14 @@ export default function CheckoutPage() {
       if (data.success) {
         console.log('✅ Order created:', data.order);
         
-        // ✅ FIX: Save order to authStore for customer dashboard
+        // Save order to authStore for customer dashboard
         const orderForStore = {
           id: data.order.id || data.order._id || `order_${Date.now()}`,
           orderNumber: data.order.orderNumber || `ORD-${Date.now()}`,
           total: data.order.totalAmount || data.order.total || total,
           status: 'pending',
           createdAt: data.order.createdAt || new Date().toISOString(),
-          customerEmail: formData.email, // Crucial for filtering in OrdersPage
+          customerEmail: formData.email,
           user: {
             email: formData.email,
             name: formData.fullName
@@ -168,24 +200,18 @@ export default function CheckoutPage() {
           }
         };
         
-        // Add to auth store (this makes it appear in customer dashboard)
         addOrder(orderForStore);
-        console.log('✅ Order saved to authStore:', orderForStore.orderNumber);
+        console.log('✅ Order saved to authStore');
         
-        // Also save to localStorage as backup
-        try {
-          const existingOrders = JSON.parse(localStorage.getItem('fittrust-orders') || '[]');
-          existingOrders.push(orderForStore);
-          localStorage.setItem('fittrust-orders', JSON.stringify(existingOrders));
-        } catch (err) {
-          console.warn('Could not save to localStorage:', err);
-        }
+        // ✅ SEND ORDER PLACEMENT EMAILS (Customer gets "Awaiting Verification", Admin gets notification)
+        await sendOrderPlacementEmails(data.order, {
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+        });
         
         setOrder(data.order);
         setPaymentMethod('bank_transfer');
-        
-        // Optional: Clear cart after successful order
-        // clearCart(); // Uncomment if you want to clear cart immediately
       } else {
         setError(data.message || data.error || 'Failed to create order. Please try again.');
       }

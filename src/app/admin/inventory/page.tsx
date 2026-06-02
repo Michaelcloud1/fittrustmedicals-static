@@ -40,20 +40,23 @@ export default function InventoryPage() {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
-  // Fetch products from backend
+  // Fetch products from backend using admin endpoint
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${BACKEND_URL}/api/catalog/products`);
+      // Use admin/products endpoint instead of catalog
+      const response = await fetch(`${BACKEND_URL}/api/admin/products`);
       const data = await response.json();
       
       let productsData = [];
-      if (data.success && data.products) {
-        productsData = data.products;
-      } else if (Array.isArray(data)) {
+      if (Array.isArray(data)) {
         productsData = data;
+      } else if (data.success && data.products) {
+        productsData = data.products;
       } else if (data.products) {
         productsData = data.products;
+      } else {
+        productsData = [];
       }
       
       setProducts(productsData);
@@ -70,9 +73,10 @@ export default function InventoryPage() {
     fetchProducts();
   }, []);
 
-  // Update stock quantity
+  // Update stock quantity using admin stock endpoint
   const updateStock = async (productId: string, change: number, currentStock: number) => {
     const newStock = Math.max(0, currentStock + change);
+    const adjustment = change; // positive for add, negative for remove
     
     // Optimistic update
     setProducts(prev => prev.map(p => 
@@ -82,24 +86,28 @@ export default function InventoryPage() {
     setUpdating(productId);
     
     try {
-      const response = await fetch(`${BACKEND_URL}/api/catalog/products/${productId}`, {
-        method: 'PUT',
+      const response = await fetch(`${BACKEND_URL}/api/admin/products/${productId}/stock`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stock: newStock }),
+        body: JSON.stringify({ 
+          adjustment: adjustment,
+          reason: `Manual stock ${adjustment > 0 ? 'increase' : 'decrease'} by admin`
+        }),
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update stock');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update stock');
       }
       
-      console.log(`Stock updated for product ${productId} to ${newStock}`);
-    } catch (err) {
+      console.log(`✅ Stock updated for product ${productId} to ${newStock}`);
+    } catch (err: any) {
       console.error('Update error:', err);
       // Revert on error
       setProducts(prev => prev.map(p => 
         p.id === productId ? { ...p, stockQuantity: currentStock } : p
       ));
-      alert('Failed to update stock. Please try again.');
+      alert(err.message || 'Failed to update stock. Please try again.');
     } finally {
       setUpdating(null);
     }
@@ -146,8 +154,8 @@ export default function InventoryPage() {
   const lowStock = alerts.filter(a => a.status === 'low');
 
   const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.sku?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -187,8 +195,9 @@ export default function InventoryPage() {
             <AlertTriangle className="w-8 h-8 text-red-500" />
           </div>
           {outOfStock.length > 0 && (
-            <p className="text-sm text-red-600 mt-2">
-              {outOfStock.map(p => p.name).join(', ')}
+            <p className="text-sm text-red-600 mt-2 line-clamp-2">
+              {outOfStock.slice(0, 3).map(p => p.name).join(', ')}
+              {outOfStock.length > 3 && ` +${outOfStock.length - 3} more`}
             </p>
           )}
         </div>
@@ -196,13 +205,13 @@ export default function InventoryPage() {
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-yellow-600 font-medium">Low Stock</p>
+              <p className="text-yellow-600 font-medium">Low Stock (≤10)</p>
               <p className="text-3xl font-bold text-yellow-700">{lowStock.length}</p>
             </div>
             <Package className="w-8 h-8 text-yellow-500" />
           </div>
           {lowStock.length > 0 && (
-            <p className="text-sm text-yellow-600 mt-2">
+            <p className="text-sm text-yellow-600 mt-2 line-clamp-2">
               {lowStock.slice(0, 3).map(p => p.name).join(', ')}
               {lowStock.length > 3 && ` +${lowStock.length - 3} more`}
             </p>
@@ -272,40 +281,56 @@ export default function InventoryPage() {
                       <td className="px-6 py-4">
                         <div>
                           <p className="font-medium text-gray-900">{product.name}</p>
-                          <p className="text-xs text-gray-500">ID: {product.id.slice(0, 8)}</p>
+                          <p className="text-xs text-gray-500 font-mono">ID: {product.id.slice(0, 8)}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 font-mono">{product.sku || 'N/A'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{product.category}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{product.category || 'Uncategorized'}</td>
                       <td className="px-6 py-4">
-                        <span className={`text-lg font-semibold ${product.stockQuantity === 0 ? 'text-red-600' : product.stockQuantity <= 10 ? 'text-yellow-600' : 'text-gray-900'}`}>
-                          {product.stockQuantity}
-                        </span>
-                        <span className="text-sm text-gray-500 ml-1">units</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${status.color}`}>
-                          {status.label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => updateStock(product.id, -1, product.stockQuantity)}
                             disabled={updating === product.id || product.stockQuantity === 0}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Decrease Stock"
                           >
                             <Minus className="w-4 h-4" />
                           </button>
-                          <span className="text-xs text-gray-400">|</span>
+                          <span className={`text-lg font-bold min-w-[50px] text-center ${product.stockQuantity === 0 ? 'text-red-600' : product.stockQuantity <= 10 ? 'text-yellow-600' : 'text-gray-900'}`}>
+                            {product.stockQuantity}
+                          </span>
                           <button
                             onClick={() => updateStock(product.id, 1, product.stockQuantity)}
                             disabled={updating === product.id}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 bg-green-100 text-green-600 rounded hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Increase Stock"
                           >
                             <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                       </dec
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${status.color}`}>
+                          {status.label}
+                        </span>
+                       </dec
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => updateStock(product.id, -5, product.stockQuantity)}
+                            disabled={updating === product.id || product.stockQuantity < 5}
+                            className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200 transition disabled:opacity-50"
+                            title="Decrease by 5"
+                          >
+                            -5
+                          </button>
+                          <button
+                            onClick={() => updateStock(product.id, 5, product.stockQuantity)}
+                            disabled={updating === product.id}
+                            className="px-2 py-1 text-xs bg-green-100 text-green-600 rounded hover:bg-green-200 transition disabled:opacity-50"
+                            title="Increase by 5"
+                          >
+                            +5
                           </button>
                           <Link href={`/admin/products/edit/${product.id}`}>
                             <button className="ml-2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit Product">
@@ -313,7 +338,7 @@ export default function InventoryPage() {
                             </button>
                           </Link>
                         </div>
-                      </td>
+                       </dec
                     </tr>
                   );
                 })}
@@ -321,6 +346,34 @@ export default function InventoryPage() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* Stock Summary Footer */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 text-center border border-gray-100">
+          <p className="text-2xl font-bold text-gray-900">
+            {products.reduce((sum, p) => sum + p.stockQuantity, 0)}
+          </p>
+          <p className="text-sm text-gray-500">Total Units</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 text-center border border-gray-100">
+          <p className="text-2xl font-bold text-green-600">
+            {products.filter(p => p.stockQuantity > 10).length}
+          </p>
+          <p className="text-sm text-gray-500">Well Stocked</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 text-center border border-gray-100">
+          <p className="text-2xl font-bold text-yellow-600">
+            {products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= 10).length}
+          </p>
+          <p className="text-sm text-gray-500">Low Stock</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 text-center border border-gray-100">
+          <p className="text-2xl font-bold text-red-600">
+            {products.filter(p => p.stockQuantity === 0).length}
+          </p>
+          <p className="text-sm text-gray-500">Out of Stock</p>
+        </div>
       </div>
     </div>
   );

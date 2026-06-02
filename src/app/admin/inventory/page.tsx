@@ -44,7 +44,6 @@ export default function InventoryPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      // Use admin/products endpoint instead of catalog
       const response = await fetch(`${BACKEND_URL}/api/admin/products`);
       const data = await response.json();
       
@@ -76,7 +75,7 @@ export default function InventoryPage() {
   // Update stock quantity using admin stock endpoint
   const updateStock = async (productId: string, change: number, currentStock: number) => {
     const newStock = Math.max(0, currentStock + change);
-    const adjustment = change; // positive for add, negative for remove
+    const adjustment = change;
     
     // Optimistic update
     setProducts(prev => prev.map(p => 
@@ -115,12 +114,12 @@ export default function InventoryPage() {
 
   const getStockStatus = (stock: number) => {
     if (stock === 0) {
-      return { label: 'Out of Stock', color: 'bg-red-100 text-red-700', border: 'border-red-200' };
+      return { label: 'Out of Stock', color: 'bg-red-100 text-red-700' };
     }
     if (stock <= 10) {
-      return { label: 'Low Stock', color: 'bg-yellow-100 text-yellow-700', border: 'border-yellow-200' };
+      return { label: 'Low Stock', color: 'bg-yellow-100 text-yellow-700' };
     }
-    return { label: 'In Stock', color: 'bg-green-100 text-green-700', border: 'border-green-200' };
+    return { label: 'In Stock', color: 'bg-green-100 text-green-700' };
   };
 
   const getAlerts = () => {
@@ -308,12 +307,12 @@ export default function InventoryPage() {
                             <Plus className="w-4 h-4" />
                           </button>
                         </div>
-                       </dec
+                      </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${status.color}`}>
                           {status.label}
                         </span>
-                       </dec
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
                           <button
@@ -338,7 +337,7 @@ export default function InventoryPage() {
                             </button>
                           </Link>
                         </div>
-                       </dec
+                      </td>
                     </tr>
                   );
                 })}
@@ -352,25 +351,25 @@ export default function InventoryPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-4 text-center border border-gray-100">
           <p className="text-2xl font-bold text-gray-900">
-            {products.reduce((sum, p) => sum + p.stockQuantity, 0)}
+            {products.reduce((sum, p) => sum + (p.stockQuantity || 0), 0)}
           </p>
           <p className="text-sm text-gray-500">Total Units</p>
         </div>
         <div className="bg-white rounded-xl p-4 text-center border border-gray-100">
           <p className="text-2xl font-bold text-green-600">
-            {products.filter(p => p.stockQuantity > 10).length}
+            {products.filter(p => (p.stockQuantity || 0) > 10).length}
           </p>
           <p className="text-sm text-gray-500">Well Stocked</p>
         </div>
         <div className="bg-white rounded-xl p-4 text-center border border-gray-100">
           <p className="text-2xl font-bold text-yellow-600">
-            {products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= 10).length}
+            {products.filter(p => (p.stockQuantity || 0) > 0 && (p.stockQuantity || 0) <= 10).length}
           </p>
           <p className="text-sm text-gray-500">Low Stock</p>
         </div>
         <div className="bg-white rounded-xl p-4 text-center border border-gray-100">
           <p className="text-2xl font-bold text-red-600">
-            {products.filter(p => p.stockQuantity === 0).length}
+            {products.filter(p => (p.stockQuantity || 0) === 0).length}
           </p>
           <p className="text-sm text-gray-500">Out of Stock</p>
         </div>

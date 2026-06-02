@@ -27,6 +27,16 @@ export default function ReceiptPage() {
     window.print();
   };
 
+  // ✅ ADD THIS FUNCTION FOR PDF DOWNLOAD
+  const handleDownloadPDF = () => {
+    // Use browser's print dialog which has "Save as PDF" option
+    // This is the simplest solution without extra packages
+    const originalTitle = document.title;
+    document.title = `Receipt_${order.orderNumber}`;
+    window.print();
+    document.title = originalTitle;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center no-print">
@@ -43,6 +53,7 @@ export default function ReceiptPage() {
             <span>Print</span>
           </button>
           <button
+            onClick={handleDownloadPDF} // ✅ ADD THIS - connects the function
             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -71,16 +82,16 @@ export default function ReceiptPage() {
         <div className="grid grid-cols-2 gap-8 mb-6">
           <div>
             <h3 className="font-semibold text-gray-900 mb-2">Bill To:</h3>
-            <p className="text-gray-700">{customer?.name}</p>
-            <p className="text-gray-700">{customer?.email}</p>
+            <p className="text-gray-700">{customer?.name || order.user?.name}</p>
+            <p className="text-gray-700">{customer?.email || order.user?.email}</p>
             <p className="text-gray-700">{customer?.phone}</p>
           </div>
           <div>
             <h3 className="font-semibold text-gray-900 mb-2">Ship To:</h3>
-            <p className="text-gray-700">{order.shippingAddress.label}</p>
-            <p className="text-gray-700">{order.shippingAddress.street}</p>
+            <p className="text-gray-700">{order.shippingAddress?.label || order.user?.name}</p>
+            <p className="text-gray-700">{order.shippingAddress?.street}</p>
             <p className="text-gray-700">
-              {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
+              {order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.zipCode}
             </p>
           </div>
         </div>

@@ -23,7 +23,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
-  const customer = useAuthStore((state) => state.customer);
+  const { customer, addOrder } = useAuthStore(); // ✅ Added addOrder here
   
   const [isMounted, setIsMounted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -138,8 +138,54 @@ export default function CheckoutPage() {
 
       if (data.success) {
         console.log('✅ Order created:', data.order);
+        
+        // ✅ FIX: Save order to authStore for customer dashboard
+        const orderForStore = {
+          id: data.order.id || data.order._id || `order_${Date.now()}`,
+          orderNumber: data.order.orderNumber || `ORD-${Date.now()}`,
+          total: data.order.totalAmount || data.order.total || total,
+          status: 'pending',
+          createdAt: data.order.createdAt || new Date().toISOString(),
+          customerEmail: formData.email, // Crucial for filtering in OrdersPage
+          user: {
+            email: formData.email,
+            name: formData.fullName
+          },
+          items: items.map((item) => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            image: item.image || null
+          })),
+          shippingAddress: {
+            label: formData.fullName,
+            street: formData.street,
+            city: formData.city,
+            state: formData.state,
+            zipCode: '',
+            country: formData.country
+          }
+        };
+        
+        // Add to auth store (this makes it appear in customer dashboard)
+        addOrder(orderForStore);
+        console.log('✅ Order saved to authStore:', orderForStore.orderNumber);
+        
+        // Also save to localStorage as backup
+        try {
+          const existingOrders = JSON.parse(localStorage.getItem('fittrust-orders') || '[]');
+          existingOrders.push(orderForStore);
+          localStorage.setItem('fittrust-orders', JSON.stringify(existingOrders));
+        } catch (err) {
+          console.warn('Could not save to localStorage:', err);
+        }
+        
         setOrder(data.order);
         setPaymentMethod('bank_transfer');
+        
+        // Optional: Clear cart after successful order
+        // clearCart(); // Uncomment if you want to clear cart immediately
       } else {
         setError(data.message || data.error || 'Failed to create order. Please try again.');
       }
@@ -152,7 +198,6 @@ export default function CheckoutPage() {
   };
 
   // Show bank transfer display after order is created
-  // ✅ UPDATED: Pass phoneNumber and items to BankTransferDisplay
   if (paymentMethod === 'bank_transfer' && order) {
     return (
       <BankTransferDisplay

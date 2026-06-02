@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useCartStore } from '@/stores/cartStore';
-import { Star, Heart, ShoppingCart, Truck, Shield, ArrowLeft, Minus, Plus } from 'lucide-react';
+import { Star, Heart, ShoppingCart, Truck, Shield, ArrowLeft, Minus, Plus, RefreshCw } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -19,10 +19,10 @@ interface Product {
   category: string;
   description: string;
   image: string;
-  stockQuantity: number;  // ✅ FIXED: Changed from 'stock' to 'stockQuantity'
+  stockQuantity: number;
   rating: number;
   reviewCount: number;
-  isActive: boolean;       // ✅ FIXED: Changed from 'status' to 'isActive'
+  isActive: boolean;
 }
 
 export default function ProductDetailPage() {
@@ -35,60 +35,63 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   const productId = params.id as string;
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        
-        console.log('🔍 Looking for product with ID:', productId);
-        
-        // Fetch all products from API
-        const response = await fetch('/api/catalog/products');
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('📦 Full API Response:', data);
-        
-        // Extract products array from response
-        let products = [];
-        if (data.success && Array.isArray(data.products)) {
-          products = data.products;
-        } else if (Array.isArray(data)) {
-          products = data;
-        } else if (data.products && Array.isArray(data.products)) {
-          products = data.products;
-        } else if (data.data && Array.isArray(data.data)) {
-          products = data.data;
-        }
-        
-        console.log(`📋 API returned ${products.length} products`);
-        console.log('📋 API product IDs:', products.map((p: Product) => p.id));
-        
-        // Find product by exact ID match
-        const foundProduct = products.find((p: Product) => p.id === productId);
-        
-        if (foundProduct) {
-          console.log('✅ Found product in API!', foundProduct);
-          setProduct(foundProduct);
-        } else {
-          console.log('❌ Product not found');
-          setError(`Product with ID "${productId}" was not found in our catalog.`);
-        }
-      } catch (err) {
-        console.error('❌ Error fetching product:', err);
-        setError('Unable to load product. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Fetch product from API
+  const fetchProduct = async (showRefreshIndicator = false) => {
+    if (showRefreshIndicator) setRefreshing(true);
     
+    try {
+      setError('');
+      
+      console.log('🔍 Fetching product with ID:', productId);
+      
+      // Fetch single product by ID using the catalog API with query parameter
+      const response = await fetch(`/api/catalog/products?id=${productId}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('📦 API Response:', data);
+      
+      if (data.success && data.product) {
+        console.log('✅ Found product:', data.product);
+        setProduct(data.product);
+      } else {
+        console.log('❌ Product not found');
+        setError(`Product with ID "${productId}" was not found.`);
+      }
+    } catch (err) {
+      console.error('❌ Error fetching product:', err);
+      setError('Unable to load product. Please try again later.');
+    } finally {
+      setLoading(false);
+      if (showRefreshIndicator) setRefreshing(false);
+    }
+  };
+
+  // Refresh stock only (lightweight update)
+  const refreshStock = async () => {
+    if (!productId) return;
+    
+    try {
+      const response = await fetch(`/api/catalog/products?id=${productId}`);
+      const data = await response.json();
+      
+      if (data.success && data.product && data.product.stockQuantity !== undefined) {
+        setProduct(prev => prev ? { ...prev, stockQuantity: data.product.stockQuantity } : prev);
+        console.log(`🔄 Stock refreshed: ${data.product.stockQuantity} units`);
+      }
+    } catch (err) {
+      console.error('Error refreshing stock:', err);
+    }
+  };
+
+  useEffect(() => {
     if (productId) {
       fetchProduct();
     } else {
@@ -104,6 +107,17 @@ export default function ProductDetailPage() {
       console.error('Error checking wishlist:', error);
     }
   }, [productId]);
+
+  // Set up auto-refresh every 30 seconds to keep stock updated
+  useEffect(() => {
+    if (!product) return;
+    
+    const interval = setInterval(() => {
+      refreshStock();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [product]);
 
   const formatNaira = (price: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -126,7 +140,7 @@ export default function ProductDetailPage() {
       quantity: quantity,
       image: product.image || '/placeholder.svg',
       category: product.category,
-      maxStock: product.stockQuantity,  // ✅ FIXED: Use stockQuantity
+      maxStock: product.stockQuantity,
     });
     
     setTimeout(() => {
@@ -179,11 +193,24 @@ export default function ProductDetailPage() {
     return stars;
   };
 
-  // ✅ Determine if product is in stock
   const isInStock = product?.stockQuantity ? product.stockQuantity > 0 : false;
   const stockDisplay = isInStock 
-    ? `${product?.stockQuantity} in stock` 
+    ? `${product?.stockQuantity} units available` 
     : 'Out of stock';
+
+  const getStockStatusColor = () => {
+    if (!product) return 'text-gray-500';
+    if (product.stockQuantity <= 0) return 'text-red-600';
+    if (product.stockQuantity <= 5) return 'text-yellow-600';
+    return 'text-green-600';
+  };
+
+  const getStockBackgroundColor = () => {
+    if (!product) return 'bg-gray-50';
+    if (product.stockQuantity <= 0) return 'bg-red-50';
+    if (product.stockQuantity <= 5) return 'bg-yellow-50';
+    return 'bg-green-50';
+  };
 
   if (loading) {
     return (
@@ -229,13 +256,24 @@ export default function ProductDetailPage() {
           ]}
         />
 
-        <button 
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-6 mt-4 transition-colors"
-        >
-          <ArrowLeft size={20} />
-          Back to Products
-        </button>
+        <div className="flex justify-between items-center mb-6 mt-4">
+          <button 
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
+          >
+            <ArrowLeft size={20} />
+            Back to Products
+          </button>
+          
+          <button 
+            onClick={() => refreshStock()}
+            disabled={refreshing}
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 transition-colors"
+          >
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+            Check Stock
+          </button>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Image */}
@@ -274,13 +312,39 @@ export default function ProductDetailPage() {
               {product.originalPrice && product.originalPrice > product.price && (
                 <p className="text-lg text-gray-400 line-through mt-1">{formatNaira(product.originalPrice)}</p>
               )}
+            </div>
+
+            {/* Stock Status - Enhanced Display */}
+            <div className={`mb-6 p-4 rounded-lg ${getStockBackgroundColor()} border`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`font-semibold ${getStockStatusColor()}`}>
+                    {product.stockQuantity <= 0 ? '❌ Out of Stock' : 
+                     product.stockQuantity <= 5 ? '⚠️ Low Stock' : 
+                     '✅ In Stock'}
+                  </p>
+                  <p className={`text-sm mt-1 ${getStockStatusColor()}`}>
+                    {stockDisplay}
+                  </p>
+                </div>
+                {product.stockQuantity > 0 && product.stockQuantity <= 5 && (
+                  <div className="bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full">
+                    Only {product.stockQuantity} left!
+                  </div>
+                )}
+              </div>
               
-              {/* ✅ STOCK DISPLAY - FIXED */}
-              <p className="text-sm mt-2">
-                Stock: <span className={isInStock ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                  {stockDisplay}
-                </span>
-              </p>
+              {/* Stock progress bar for visual indication */}
+              {product.stockQuantity > 0 && (
+                <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
+                  <div 
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      product.stockQuantity <= 5 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(100, (product.stockQuantity / 100) * 100)}%` }}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -325,7 +389,10 @@ export default function ProductDetailPage() {
                   <input 
                     type="number" 
                     value={quantity} 
-                    onChange={(e) => setQuantity(Math.min(product.stockQuantity, Math.max(1, parseInt(e.target.value) || 1)))} 
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      setQuantity(Math.min(product.stockQuantity, Math.max(1, isNaN(val) ? 1 : val)));
+                    }} 
                     className="w-20 text-center border border-gray-300 rounded-lg px-3 py-2" 
                   />
                   <button 

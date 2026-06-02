@@ -6,7 +6,12 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedi
 // GET /api/catalog/products - Get all products from backend
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/catalog/products`);
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const limit = searchParams.get('limit');
+    
+    // Use admin/products endpoint for real-time stock data
+    const response = await fetch(`${BACKEND_URL}/api/admin/products`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch products from backend');
@@ -14,10 +19,46 @@ export async function GET(request: NextRequest) {
     
     const data = await response.json();
     
+    // Parse the response (handles both array and object responses)
+    let products = [];
+    if (Array.isArray(data)) {
+      products = data;
+    } else if (data.success && data.products) {
+      products = data.products;
+    } else if (data.products) {
+      products = data.products;
+    } else {
+      products = [];
+    }
+    
+    // Filter active products only
+    let activeProducts = products.filter((p: any) => p.isActive !== false);
+    
+    // If specific product requested
+    if (id) {
+      const product = activeProducts.find((p: any) => p.id === id);
+      if (!product) {
+        return NextResponse.json(
+          { success: false, error: 'Product not found' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        product: product,
+        source: 'backend'
+      });
+    }
+    
+    // Apply limit if specified
+    if (limit) {
+      activeProducts = activeProducts.slice(0, parseInt(limit));
+    }
+    
     return NextResponse.json({
       success: true,
-      products: data.products || data,
-      total: data.products?.length || data.length || 0,
+      products: activeProducts,
+      total: activeProducts.length,
       source: 'backend'
     });
   } catch (error) {
@@ -40,8 +81,8 @@ export async function POST(request: NextRequest) {
     
     console.log('Received product data:', body);
     
-    // Forward to backend API
-    const response = await fetch(`${BACKEND_URL}/api/catalog/products`, {
+    // Forward to backend admin/products endpoint
+    const response = await fetch(`${BACKEND_URL}/api/admin/products`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -84,7 +125,8 @@ export async function PUT(request: NextRequest) {
       );
     }
     
-    const response = await fetch(`${BACKEND_URL}/api/catalog/products/${id}`, {
+    // Forward to backend admin/products endpoint
+    const response = await fetch(`${BACKEND_URL}/api/admin/products/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -112,6 +154,74 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+// PATCH /api/catalog/products - Update product stock (for stock adjustments)
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, stockQuantity, adjustment } = body;
+    
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Product ID required' },
+        { status: 400 }
+      );
+    }
+    
+    // If adjustment is provided, use the stock adjustment endpoint
+    if (adjustment !== undefined) {
+      const response = await fetch(`${BACKEND_URL}/api/admin/products/${id}/stock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          adjustment: adjustment,
+          reason: 'Stock update from catalog API'
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update stock');
+      }
+      
+      return NextResponse.json({
+        success: true,
+        data: data.product,
+        message: 'Stock updated successfully'
+      });
+    }
+    
+    // Otherwise, update the full product
+    const response = await fetch(`${BACKEND_URL}/api/admin/products/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ stockQuantity }),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to update product stock');
+    }
+    
+    return NextResponse.json({
+      success: true,
+      data: data.data || data,
+      message: 'Product stock updated successfully'
+    });
+  } catch (error) {
+    console.error('PATCH product error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to update product stock' },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE /api/catalog/products - Delete a product
 export async function DELETE(request: NextRequest) {
   try {
@@ -125,7 +235,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    const response = await fetch(`${BACKEND_URL}/api/catalog/products/${id}`, {
+    const response = await fetch(`${BACKEND_URL}/api/admin/products/${id}`, {
       method: 'DELETE',
     });
     

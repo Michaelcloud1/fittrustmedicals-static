@@ -12,8 +12,8 @@ interface Product {
   category: string;
   description: string;
   image: string;
-  stock: number;
-  status: string;
+  stockQuantity: number;  // ✅ CHANGED: 'stock' to 'stockQuantity'
+  isActive: boolean;      // ✅ CHANGED: 'status' to 'isActive'
   rating: number;
   reviewCount: number;
   isPromotional?: boolean;
@@ -43,7 +43,9 @@ export default function ProductsPage() {
         productsData = data.products;
       }
       
-      setProducts(productsData);
+      // ✅ ADDED: Filter only active products
+      const activeProducts = productsData.filter((p: Product) => p.isActive !== false);
+      setProducts(activeProducts);
     } catch (err) {
       console.error('Error fetching products:', err);
     } finally {
@@ -56,11 +58,11 @@ export default function ProductsPage() {
   }, []);
 
   // Get unique categories
-  const categories = ['All', ...new Set(products.map(p => p.category))];
+  const categories = ['All', ...new Set(products.map(p => p.category).filter(Boolean))];
 
   // Filter products
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = product.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
     const matchesCategory = activeCategory === 'All' || product.category === activeCategory;
     return matchesSearch && matchesCategory;
   });

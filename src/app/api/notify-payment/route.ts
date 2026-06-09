@@ -102,14 +102,8 @@ export async function POST(request: NextRequest) {
               <p style="margin: 5px 0;">3. Your order will be processed for delivery</p>
             </div>
             
-            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin: 0 0 10px 0;">🏦 Bank Transfer Details</h3>
-              <p style="margin: 5px 0;"><strong>Bank:</strong> GTBank</p>
-              <p style="margin: 5px 0;"><strong>Account Name:</strong> Fittrust Medicals</p>
-              <p style="margin: 5px 0;"><strong>Account Number:</strong> 0123456789</p>
-              <p style="margin: 5px 0;"><strong>Amount:</strong> ${formatNaira(totalAmount)}</p>
-              <p style="margin: 5px 0;"><strong>Reference:</strong> Use ${orderId} as reference</p>
-            </div>
+            <!-- BANK DETAILS SECTION REMOVED -->
+            
           </div>
           
           <div style="background: #f3f4f6; padding: 20px; text-align: center; font-size: 12px; color: #6b7280;">

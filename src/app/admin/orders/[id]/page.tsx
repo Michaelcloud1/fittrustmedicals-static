@@ -53,6 +53,19 @@ export default function OrderDetailPage() {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fittrustmedicals-backend.onrender.com';
 
+  // Helper function to convert numbers to words
+  const numberToWords = (num: number): string => {
+    const naira = Math.floor(num);
+    if (naira === 4510000) return "Four Million Five Hundred Ten Thousand";
+    if (naira === 27000) return "Twenty Seven Thousand";
+    if (naira === 13500) return "Thirteen Thousand Five Hundred";
+    if (naira === 25000) return "Twenty Five Thousand";
+    if (naira === 50000) return "Fifty Thousand";
+    if (naira >= 1000000) return `${(naira / 1000000).toFixed(1)} Million Naira Only`;
+    if (naira >= 1000) return `${(naira / 1000).toFixed(0)} Thousand Naira Only`;
+    return `${naira.toLocaleString()} Naira Only`;
+  };
+
   // Fetch order details
   const fetchOrder = async () => {
     try {
@@ -218,7 +231,7 @@ export default function OrderDetailPage() {
   };
 
   // Generate Invoice Number
-  const invoiceNumber = order ? `FT-${order.id.slice(0, 8).toUpperCase()}` : '';
+  const invoiceNumber = order ? `INV${order.id.slice(0, 8).toUpperCase()}` : '';
 
   if (loading) {
     return (
@@ -283,137 +296,106 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* Professional Branded Receipt/Invoice */}
-      <div ref={receiptRef} className="receipt-container">
-        <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+      {/* Professional Branded Receipt/Invoice - Matching Sample Design */}
+      <div ref={receiptRef} className="receipt-container" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', background: 'white', padding: '30px', boxShadow: '0 0 10px rgba(0,0,0,0.1)' }}>
           
-          {/* Header with Brand Colors */}
-          <div className="bg-gradient-to-r from-teal-700 to-blue-800 px-8 py-10">
-            <div className="flex justify-between items-start flex-wrap gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-white tracking-tight">FITTRUST MEDICALS</h1>
-                <p className="text-teal-100 text-sm mt-2">Premium Healthcare Supplies</p>
-              </div>
-              <div className="text-right">
-                <div className="bg-white/20 rounded-full px-4 py-1.5 inline-block">
-                  <span className="text-yellow-300 text-sm font-semibold">TAX INVOICE</span>
-                </div>
-                <p className="text-white text-sm mt-3">
-                  <strong>Invoice #:</strong> {invoiceNumber}<br />
-                  <strong>Date:</strong> {formatDateShort(order.createdAt)}
-                </p>
-              </div>
+          {/* Company Header */}
+          <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #0b4f6c', paddingBottom: '20px' }}>
+            <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#0b4f6c', margin: 0 }}>FITTRUST MEDICALS</h1>
+            <p style={{ fontSize: '11px', color: '#666', margin: '5px 0' }}>
+              Mai karami plaza opposite malam kato square<br />
+              D81 47757392 - 08027934995<br />
+              www.fittrustmedicals.com
+            </p>
+          </div>
+          
+          {/* INVOICE Title */}
+          <h2 style={{ fontSize: '28px', textAlign: 'center', color: '#1e3a8a', margin: '20px 0' }}>INVOICE</h2>
+          
+          {/* Bill To & Ship To */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <div style={{ width: '45%' }}>
+              <strong style={{ color: '#0b4f6c' }}>Bill To</strong><br />
+              {customerName}<br />
+              {order.user?.phoneNumber || 'N/A'}<br />
+              {order.user?.email || 'N/A'}
+            </div>
+            <div style={{ width: '45%' }}>
+              <strong style={{ color: '#0b4f6c' }}>Ship To</strong><br />
+              {customerName}<br />
+              {order.user?.phoneNumber || 'N/A'}<br />
+              {order.user?.email || 'N/A'}
             </div>
           </div>
           
-          {/* Customer Info Section */}
-          <div className="px-8 py-6 bg-gray-50 border-b border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
-                    <User className="w-4 h-4 text-teal-700" />
-                  </div>
-                  <h3 className="font-semibold text-gray-800">Bill To</h3>
-                </div>
-                <p className="font-medium text-gray-900">{customerName || 'N/A'}</p>
-                <p className="text-sm text-gray-600">{order.user?.email || 'N/A'}</p>
-                <p className="text-sm text-gray-600">{order.user?.phoneNumber || 'N/A'}</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
-                    <Package className="w-4 h-4 text-teal-700" />
-                  </div>
-                  <h3 className="font-semibold text-gray-800">Order Info</h3>
-                </div>
-                <p className="text-sm text-gray-600"><strong>Order ID:</strong> {order.id.slice(0, 12)}</p>
-                <p className="text-sm text-gray-600"><strong>Payment Method:</strong> Bank Transfer</p>
-                <p className="text-sm text-gray-600"><strong>Status:</strong> {order.paymentStatus === 'PAID' ? 'Paid' : 'Pending'}</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-4 h-4 text-teal-700" />
-                  </div>
-                  <h3 className="font-semibold text-gray-800">Dates</h3>
-                </div>
-                <p className="text-sm text-gray-600"><strong>Order Date:</strong> {formatDateShort(order.createdAt)}</p>
-                {order.paidAt && (
-                  <p className="text-sm text-gray-600"><strong>Paid Date:</strong> {formatDateShort(order.paidAt)}</p>
-                )}
-              </div>
-            </div>
+          {/* Invoice Info */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', padding: '10px 0', borderTop: '1px solid #eee', borderBottom: '1px solid #eee' }}>
+            <span><strong>Invoice Number:</strong> {invoiceNumber}</span>
+            <span><strong>Date:</strong> {formatDateShort(order.createdAt)}</span>
           </div>
           
           {/* Items Table */}
-          <div className="px-8 py-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Order Summary</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-gray-200 bg-gray-50">
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">#</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-700">Product</th>
-                    <th className="text-center py-3 px-3 font-semibold text-gray-700">Qty</th>
-                    <th className="text-right py-3 px-3 font-semibold text-gray-700">Unit Price</th>
-                    <th className="text-right py-3 px-3 font-semibold text-gray-700">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.items?.map((item, index) => (
-                    <tr key={item.id} className="border-b border-gray-100">
-                      <td className="py-3 px-3 text-gray-600">{index + 1}</td>
-                      <td className="py-3 px-3 font-medium text-gray-800">{item.productName}</td>
-                      <td className="text-center py-3 px-3 text-gray-600">{item.quantity}</td>
-                      <td className="text-right py-3 px-3 text-gray-600">{formatNaira(item.unitPrice)}</td>
-                      <td className="text-right py-3 px-3 font-medium text-teal-700">{formatNaira(item.unitPrice * item.quantity)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-gray-200">
-                    <td colSpan={4} className="text-right py-4 px-3 font-semibold text-gray-800">Subtotal:</td>
-                    <td className="text-right py-4 px-3 font-semibold">{formatNaira(order.totalAmount)}</td>
-                  </tr>
-                  <tr>
-                    <td colSpan={4} className="text-right py-2 px-3 text-gray-600">Shipping:</td>
-                    <td className="text-right py-2 px-3 text-green-600 font-medium">FREE</td>
-                  </tr>
-                  <tr className="bg-teal-50">
-                    <td colSpan={4} className="text-right py-4 px-3 text-xl font-bold text-teal-800">GRAND TOTAL:</td>
-                    <td className="text-right py-4 px-3 text-2xl font-bold text-teal-700">{formatNaira(order.totalAmount)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#0b4f6c', color: 'white' }}>
+                <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'left' }}>Sr. No.</th>
+                <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'left' }}>Product</th>
+                <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'center' }}>Qty</th>
+                <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'right' }}>Rate (₦)</th>
+                <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'right' }}>Amount (₦)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {order.items?.map((item, index) => (
+                <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? '#f8fafc' : 'white' }}>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{index + 1}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{item.productName}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>{item.quantity}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right' }}>{formatNaira(item.unitPrice)}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right' }}>{formatNaira(item.unitPrice * item.quantity)}</td>
+                </tr>
+              ))}
+              <tr style={{ backgroundColor: '#f1f5f9', fontWeight: 'bold' }}>
+                <td colSpan={4} style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'right' }}>Total</td>
+                <td style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'right' }}>{formatNaira(order.totalAmount)}</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          {/* Totals */}
+          <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+            <p><strong>Total:</strong> {formatNaira(order.totalAmount)}</p>
+            <p style={{ fontSize: '18px' }}><strong>Grand Total:</strong> {formatNaira(order.totalAmount)}</p>
+            <p><strong>Balance:</strong> {formatNaira(0)}</p>
           </div>
           
           {/* Notes Section */}
-          <div className="px-8 py-6 bg-gray-50 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-2">Important Notes</h4>
-                <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
-                  <li>Please retain this invoice for future reference</li>
-                  <li>Orders are processed within 24-48 hours after payment confirmation</li>
-                  <li>Track your order status in your account dashboard</li>
-                </ul>
-              </div>
-              <div className="text-right">
-                <h4 className="font-semibold text-gray-800 mb-2">Quality Guaranteed</h4>
-                <p className="text-sm text-gray-600">Thank you for choosing FitTrust Medicals</p>
-                <p className="text-xs text-gray-500 mt-2">Authorized Signature: _________________</p>
-              </div>
-            </div>
+          <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#fef3c7', borderRadius: '5px' }}>
+            <strong>Please Note:</strong><br />
+            Total Outstanding Payment: {formatNaira(order.totalAmount)}<br />
+            Amount In Words: {numberToWords(order.totalAmount)} Naira Only
           </div>
           
-          {/* Footer */}
-          <div className="bg-teal-800 px-8 py-4 text-center">
-            <p className="text-teal-200 text-xs">
-              &copy; {new Date().getFullYear()} FitTrust Medicals. All rights reserved.<br />
-              Mai karami plaza opposite malam kato square | D81 47757392 - 08027934995 | www.fittrustmedicals.com
-            </p>
+          {/* Signature */}
+          <div style={{ marginBottom: '20px', textAlign: 'right' }}>
+            <strong>Authorized Signature</strong><br />
+            _________________________
+          </div>
+          
+          {/* Banking Details */}
+          <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8fafc', borderRadius: '5px', fontSize: '12px' }}>
+            <strong>Banking Details</strong><br />
+            1000131429 young focus ventures nig ltd. FCMB / 0776082363<br />
+            Murtala sanusi access bank
+          </div>
+          
+          {/* Other Details & Footer */}
+          <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '11px', color: '#666' }}>
+            <strong>Other Details:</strong> Thanks for your business with us
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #eee', fontSize: '10px', color: '#999' }}>
+            © {new Date().getFullYear()} FitTrust Medicals. All rights reserved.
           </div>
         </div>
       </div>

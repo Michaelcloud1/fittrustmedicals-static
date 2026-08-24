@@ -17,7 +17,7 @@ import {
   Gift,
   Shield
 } from 'lucide-react';
-import { usePromotionsStore } from '@/stores/promotionsStore';
+// REMOVED: import { usePromotionsStore } from '@/stores/promotionsStore';
 import { Header } from '@/components/layout/Header';
 
 interface Product {
@@ -39,72 +39,200 @@ interface Product {
   campaignName?: string;
 }
 
+// ✅ ADDED: Hardcoded products data
+const HARDCODED_PRODUCTS: Product[] = [
+  {
+    id: '1',
+    name: 'Digital Blood Pressure Monitor',
+    price: 45000,
+    originalPrice: 55000,
+    category: 'diagnostic',
+    description: 'High precision digital blood pressure monitor',
+    image: '/images/products/blood-pressure.jpg',
+    stock: 50,
+    status: 'active',
+    rating: 4.5,
+    reviewCount: 120,
+    featured: true,
+    discountPercentage: 18
+  },
+  {
+    id: '2',
+    name: 'Medical Grade Stethoscope',
+    price: 35000,
+    category: 'diagnostic',
+    description: 'Professional medical stethoscope',
+    image: '/images/products/stethoscope.jpg',
+    stock: 30,
+    status: 'active',
+    rating: 4.8,
+    reviewCount: 95,
+    featured: true
+  },
+  {
+    id: '3',
+    name: 'Surgical Face Masks (Box of 50)',
+    price: 15000,
+    originalPrice: 20000,
+    category: 'ppe',
+    description: 'High quality surgical face masks',
+    image: '/images/products/masks.jpg',
+    stock: 200,
+    status: 'active',
+    rating: 4.3,
+    reviewCount: 200,
+    featured: true,
+    discountPercentage: 25
+  },
+  {
+    id: '4',
+    name: 'Digital Thermometer',
+    price: 12000,
+    category: 'diagnostic',
+    description: 'Fast and accurate digital thermometer',
+    image: '/images/products/thermometer.jpg',
+    stock: 75,
+    status: 'active',
+    rating: 4.6,
+    reviewCount: 150,
+    featured: true
+  },
+  {
+    id: '5',
+    name: 'Hospital Bed',
+    price: 250000,
+    originalPrice: 300000,
+    category: 'equipment',
+    description: 'Adjustable hospital bed with mattress',
+    image: '/images/products/hospital-bed.jpg',
+    stock: 10,
+    status: 'active',
+    rating: 4.9,
+    reviewCount: 45,
+    featured: true,
+    discountPercentage: 16
+  },
+  {
+    id: '6',
+    name: 'IV Stand',
+    price: 45000,
+    category: 'equipment',
+    description: 'Stainless steel IV stand with wheels',
+    image: '/images/products/iv-stand.jpg',
+    stock: 25,
+    status: 'active',
+    rating: 4.4,
+    reviewCount: 68,
+    featured: true
+  },
+  {
+    id: '7',
+    name: 'Medical Gloves (Box of 100)',
+    price: 8000,
+    originalPrice: 10000,
+    category: 'ppe',
+    description: 'Premium medical examination gloves',
+    image: '/images/products/gloves.jpg',
+    stock: 500,
+    status: 'active',
+    rating: 4.2,
+    reviewCount: 180,
+    featured: false,
+    discountPercentage: 20
+  },
+  {
+    id: '8',
+    name: 'Pulse Oximeter',
+    price: 28000,
+    category: 'diagnostic',
+    description: 'Accurate blood oxygen saturation monitor',
+    image: '/images/products/oximeter.jpg',
+    stock: 40,
+    status: 'active',
+    rating: 4.7,
+    reviewCount: 110,
+    featured: false
+  }
+];
+
+// ✅ ADDED: Hardcoded campaign products
+const HARDCODED_CAMPAIGN_PRODUCTS: Product[] = [
+  {
+    id: '9',
+    name: 'Campaign Special: Medical Kit',
+    price: 65000,
+    originalPrice: 85000,
+    category: 'equipment',
+    description: 'Complete medical emergency kit',
+    image: '/images/products/medical-kit.jpg',
+    stock: 15,
+    status: 'active',
+    rating: 4.8,
+    reviewCount: 30,
+    isPromotional: true,
+    discountPercentage: 23,
+    campaignCode: 'SUMMER20',
+    campaignName: 'Summer Sale'
+  },
+  {
+    id: '10',
+    name: 'Campaign Special: Digital Scale',
+    price: 32000,
+    originalPrice: 40000,
+    category: 'diagnostic',
+    description: 'High precision digital medical scale',
+    image: '/images/products/scale.jpg',
+    stock: 20,
+    status: 'active',
+    rating: 4.5,
+    reviewCount: 55,
+    isPromotional: true,
+    discountPercentage: 20,
+    campaignCode: 'SUMMER20',
+    campaignName: 'Summer Sale'
+  }
+];
+
+// ✅ ADDED: Hardcoded active campaigns
+const HARDCODED_CAMPAIGNS = [
+  {
+    id: 'camp1',
+    name: 'Summer Sale',
+    code: 'SUMMER20',
+    description: 'Get 20% off on selected items',
+    bannerText: 'Summer Sale: Get 20% OFF on selected medical supplies!'
+  }
+];
+
 export default function Home() {
+  // ✅ CHANGED: Use hardcoded data instead of fetching
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [campaignProducts, setCampaignProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
-  const { promotions } = usePromotionsStore();
 
-  const activePromotions = promotions?.filter(p => 
-    p.displayOnHomepage && 
-    p.isActive && 
-    new Date(p.startDate) <= new Date() && 
-    new Date(p.endDate) >= new Date()
-  ) || [];
+  // ✅ REMOVED: usePromotionsStore - not needed for static site
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    // ✅ CHANGED: Use hardcoded data instead of API calls
+    const loadProducts = () => {
       try {
-        const response = await fetch('/api/catalog/products');
+        // Use hardcoded products
+        const productsData = HARDCODED_PRODUCTS;
+        const campaignData = HARDCODED_CAMPAIGN_PRODUCTS;
+        const campaigns = HARDCODED_CAMPAIGNS;
         
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
+        // Set featured products
+        const featured = productsData.filter((p: Product) => p.featured);
+        setFeaturedProducts(featured.length > 0 ? featured : productsData.slice(0, 8));
         
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Invalid response format');
-        }
+        // Set campaign products
+        setCampaignProducts(campaignData);
+        setActiveCampaigns(campaigns);
         
-        const data = await response.json();
-        
-        let productsData = [];
-        if (data.success && data.products) {
-          productsData = data.products;
-        } else if (Array.isArray(data)) {
-          productsData = data;
-        } else if (data.products) {
-          productsData = data.products;
-        }
-        
-        const campaignResponse = await fetch('/api/catalog/products-with-campaigns', {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache'
-          }
-        });
-        
-        if (campaignResponse.ok) {
-          const campaignData = await campaignResponse.json();
-          if (campaignData.success && campaignData.products && campaignData.products.length > 0) {
-            setCampaignProducts(campaignData.products);
-            setActiveCampaigns(campaignData.campaigns || []);
-          } else {
-            setCampaignProducts([]);
-            setActiveCampaigns([]);
-          }
-        } else {
-          setCampaignProducts([]);
-          setActiveCampaigns([]);
-        }
-        
-        if (productsData.length > 0) {
-          const featured = productsData.filter((p: Product) => p.featured).slice(0, 8);
-          setFeaturedProducts(featured.length > 0 ? featured : productsData.slice(0, 8));
-        }
+        console.log('✅ Static data loaded successfully!');
       } catch (err) {
-        console.error('Error fetching products:', err);
+        console.error('Error loading products:', err);
         setCampaignProducts([]);
         setActiveCampaigns([]);
       } finally {
@@ -112,7 +240,7 @@ export default function Home() {
       }
     };
     
-    fetchProducts();
+    loadProducts();
   }, []);
 
   const formatPrice = (price: number) => {
@@ -140,8 +268,8 @@ export default function Home() {
       {/* Header - from separate file */}
       <Header />
 
-      {/* Announcement Bar */}
-      {activePromotions.length > 0 && (
+      {/* ✅ CHANGED: Use hardcoded promotions instead of store */}
+      {HARDCODED_CAMPAIGNS.length > 0 && (
         <motion.div 
           initial={{ y: -50 }}
           animate={{ y: 0 }}
@@ -150,7 +278,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
           <div className="relative z-10">
             <Sparkles className="inline-block w-4 h-4 mr-2 animate-pulse" />
-            {activePromotions[0]?.bannerText || `Special Offer: Get ${activePromotions[0]?.value}% OFF!`}
+            {HARDCODED_CAMPAIGNS[0]?.bannerText || 'Special Offer: Get 20% OFF!'}
             <Link href="/products" className="ml-3 inline-flex items-center font-semibold hover:text-yellow-200 transition-colors">
               Shop Now 
               <ChevronRight className="w-4 h-4 ml-1" />

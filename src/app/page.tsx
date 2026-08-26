@@ -1,24 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ProductCard } from '@/components/product/ProductCard';
-import { Button } from '@/components/ui/Button';
-import { 
-  ChevronRight, 
-  Sparkles,
-  Zap,
-  Stethoscope,
-  Microscope,
-  Activity,
+import {
   ArrowRight,
-  Tag,
-  Gift,
-  Shield
+  ChevronRight,
+  Microscope,
+  ShieldCheck,
+  Stethoscope,
+  Syringe,
 } from 'lucide-react';
-// REMOVED: import { usePromotionsStore } from '@/stores/promotionsStore';
+
 import { Header } from '@/components/layout/Header';
+import { ProductCard } from '@/components/product/ProductCard';
 
 interface Product {
   id: string;
@@ -28,457 +21,451 @@ interface Product {
   category: string;
   description: string;
   image: string;
-  stock: number;
-  status: string;
-  rating: number;
-  reviewCount: number;
+  stockQuantity: number;
+  isActive: boolean;
   isPromotional?: boolean;
   discountPercentage?: number;
   featured?: boolean;
-  campaignCode?: string;
-  campaignName?: string;
+  rating: number;
+  reviewCount: number;
 }
 
-// ✅ ADDED: Hardcoded products data
-const HARDCODED_PRODUCTS: Product[] = [
-  {
-    id: '1',
-    name: 'Digital Blood Pressure Monitor',
-    price: 45000,
-    originalPrice: 55000,
-    category: 'diagnostic',
-    description: 'High precision digital blood pressure monitor',
-    image: '/images/products/blood-pressure.jpg',
-    stock: 50,
-    status: 'active',
-    rating: 4.5,
-    reviewCount: 120,
-    featured: true,
-    discountPercentage: 18
-  },
-  {
-    id: '2',
-    name: 'Medical Grade Stethoscope',
-    price: 35000,
-    category: 'diagnostic',
-    description: 'Professional medical stethoscope',
-    image: '/images/products/stethoscope.jpg',
-    stock: 30,
-    status: 'active',
-    rating: 4.8,
-    reviewCount: 95,
-    featured: true
-  },
-  {
-    id: '3',
-    name: 'Surgical Face Masks (Box of 50)',
-    price: 15000,
-    originalPrice: 20000,
-    category: 'ppe',
-    description: 'High quality surgical face masks',
-    image: '/images/products/masks.jpg',
-    stock: 200,
-    status: 'active',
-    rating: 4.3,
-    reviewCount: 200,
-    featured: true,
-    discountPercentage: 25
-  },
-  {
-    id: '4',
-    name: 'Digital Thermometer',
-    price: 12000,
-    category: 'diagnostic',
-    description: 'Fast and accurate digital thermometer',
-    image: '/images/products/thermometer.jpg',
-    stock: 75,
-    status: 'active',
-    rating: 4.6,
-    reviewCount: 150,
-    featured: true
-  },
-  {
-    id: '5',
-    name: 'Hospital Bed',
-    price: 250000,
-    originalPrice: 300000,
-    category: 'equipment',
-    description: 'Adjustable hospital bed with mattress',
-    image: '/images/products/hospital-bed.jpg',
-    stock: 10,
-    status: 'active',
-    rating: 4.9,
-    reviewCount: 45,
-    featured: true,
-    discountPercentage: 16
-  },
-  {
-    id: '6',
-    name: 'IV Stand',
-    price: 45000,
-    category: 'equipment',
-    description: 'Stainless steel IV stand with wheels',
-    image: '/images/products/iv-stand.jpg',
-    stock: 25,
-    status: 'active',
-    rating: 4.4,
-    reviewCount: 68,
-    featured: true
-  },
-  {
-    id: '7',
-    name: 'Medical Gloves (Box of 100)',
-    price: 8000,
-    originalPrice: 10000,
-    category: 'ppe',
-    description: 'Premium medical examination gloves',
-    image: '/images/products/gloves.jpg',
-    stock: 500,
-    status: 'active',
-    rating: 4.2,
-    reviewCount: 180,
-    featured: false,
-    discountPercentage: 20
-  },
-  {
-    id: '8',
-    name: 'Pulse Oximeter',
-    price: 28000,
-    category: 'diagnostic',
-    description: 'Accurate blood oxygen saturation monitor',
-    image: '/images/products/oximeter.jpg',
-    stock: 40,
-    status: 'active',
-    rating: 4.7,
-    reviewCount: 110,
-    featured: false
-  }
-];
+/*
+|--------------------------------------------------------------------------
+| STATIC PRODUCTS
+|--------------------------------------------------------------------------
+| These are the products currently displayed on the website.
+|
+| To add/change an image, simply place the image inside:
+|
+| public/images/products/
+|
+| and change the image path below.
+|--------------------------------------------------------------------------
+*/
 
-// ✅ ADDED: Hardcoded campaign products
-const HARDCODED_CAMPAIGN_PRODUCTS: Product[] = [
+const PRODUCTS: Product[] = [
   {
-    id: '9',
-    name: 'Campaign Special: Medical Kit',
-    price: 65000,
-    originalPrice: 85000,
-    category: 'equipment',
-    description: 'Complete medical emergency kit',
-    image: '/images/products/medical-kit.jpg',
-    stock: 15,
-    status: 'active',
-    rating: 4.8,
-    reviewCount: 30,
+    id: '1775520478118',
+    name: 'Digital Thermometer2',
+    price: 4999,
+    originalPrice: 1000,
+    category: 'Diagnostics',
+    description: 'Digital thermometer for fast and convenient temperature measurement.',
+    image: '/images/products/digital-thermometer.jpg',
+    stockQuantity: 1,
+    isActive: true,
     isPromotional: true,
-    discountPercentage: 23,
-    campaignCode: 'SUMMER20',
-    campaignName: 'Summer Sale'
+    discountPercentage: 25,
+    featured: true,
+    rating: 0,
+    reviewCount: 0,
   },
+
   {
-    id: '10',
-    name: 'Campaign Special: Digital Scale',
-    price: 32000,
-    originalPrice: 40000,
-    category: 'diagnostic',
-    description: 'High precision digital medical scale',
-    image: '/images/products/scale.jpg',
-    stock: 20,
-    status: 'active',
-    rating: 4.5,
-    reviewCount: 55,
+    id: '1775524087587',
+    name: 'Blood Transfusion Set',
+    price: 6000,
+    originalPrice: 10000,
+    category: 'IV Sets & Accessories',
+    description:
+      'Sterile single-use blood transfusion set with integrated blood filter.',
+    image: '/images/products/blood-transfusion-set.jpg',
+    stockQuantity: 4,
+    isActive: true,
+    isPromotional: true,
+    discountPercentage: 25,
+    featured: true,
+    rating: 0,
+    reviewCount: 0,
+  },
+
+  {
+    id: '1775558956188-5nxgcjxvh',
+    name: 'Widal-2 Antigens',
+    price: 3000,
+    originalPrice: 6000,
+    category: 'Serological Reagent',
+    description:
+      'Serological reagent for Widal agglutination testing.',
+    image: '/images/products/widal-2-antigens.webp',
+    stockQuantity: 3,
+    isActive: true,
     isPromotional: true,
     discountPercentage: 20,
-    campaignCode: 'SUMMER20',
-    campaignName: 'Summer Sale'
-  }
+    featured: false,
+    rating: 0,
+    reviewCount: 0,
+  },
+
+  {
+    id: '1775659282198-v1mlx5ak8',
+    name: 'Cryovial Tube',
+    price: 1000,
+    originalPrice: 3000,
+    category: 'Diagnostics & Research',
+    description:
+      'Medical-grade cryogenic storage tube suitable for laboratory and research applications.',
+    image: '/images/products/cryovial-tube.jpeg',
+    stockQuantity: 1,
+    isActive: true,
+    isPromotional: true,
+    discountPercentage: 25,
+    featured: true,
+    rating: 0,
+    reviewCount: 0,
+  },
+
+  {
+    id: '1775664194025-iuuy58yrd',
+    name: 'Micro Slides',
+    price: 1499.99,
+    originalPrice: 5000,
+    category: 'Diagnostics & Research',
+    description:
+      'Optical-quality microscope slides suitable for laboratory and educational applications.',
+    image: '/images/products/micro-slides.jpeg',
+    stockQuantity: 2,
+    isActive: true,
+    isPromotional: true,
+    discountPercentage: 25,
+    featured: true,
+    rating: 0,
+    reviewCount: 0,
+  },
+
+  {
+    id: '1775819075513-4g14d95a4',
+    name: 'Lithium Heparin Non-Vacuum Blood Collection Tube',
+    price: 10002,
+    originalPrice: 40000,
+    category: 'Blood Collection Tubes',
+    description:
+      'Lithium heparin blood collection tubes designed for plasma-based laboratory testing.',
+    image: '/images/products/lithium-heparin-tube.jpeg',
+    stockQuantity: 1,
+    isActive: true,
+    isPromotional: true,
+    discountPercentage: 25,
+    featured: true,
+    rating: 0,
+    reviewCount: 0,
+  },
+
+  {
+    id: '1775908113105-u3genoaql',
+    name: 'Blood Grouping Sera Anti D',
+    price: 1000,
+    originalPrice: 4000,
+    category: 'Blood Collection Tubes',
+    description: 'Blood grouping serum Anti-D reagent.',
+    image: '/images/products/blood-grouping-sera-anti-d.jpeg',
+    stockQuantity: 13,
+    isActive: true,
+    isPromotional: true,
+    discountPercentage: 19,
+    featured: true,
+    rating: 0,
+    reviewCount: 0,
+  },
+
+  {
+    id: '1776025727212-dfv4e951a',
+    name: 'U-100 Insulin Syringe',
+    price: 1000,
+    originalPrice: 3000,
+    category: 'Diabetes Care',
+    description:
+      'Sterile disposable U-100 insulin syringe designed for accurate insulin administration.',
+    image: '/images/products/insulin-syringe.jpeg',
+    stockQuantity: 33,
+    isActive: true,
+    isPromotional: true,
+    discountPercentage: 19,
+    featured: true,
+    rating: 0,
+    reviewCount: 0,
+  },
 ];
 
-// ✅ ADDED: Hardcoded active campaigns
-const HARDCODED_CAMPAIGNS = [
-  {
-    id: 'camp1',
-    name: 'Summer Sale',
-    code: 'SUMMER20',
-    description: 'Get 20% off on selected items',
-    bannerText: 'Summer Sale: Get 20% OFF on selected medical supplies!'
-  }
-];
+/*
+|--------------------------------------------------------------------------
+| Helpers
+|--------------------------------------------------------------------------
+*/
+
+const formatPrice = (price: number) =>
+  new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price);
+
+const featuredProducts = PRODUCTS.filter((product) => product.featured);
+
+const diagnosticProducts = PRODUCTS.filter((product) =>
+  product.category.toLowerCase().includes('diagnostic') ||
+  product.category.toLowerCase().includes('research') ||
+  product.category.toLowerCase().includes('serological')
+);
+
+const laboratoryProducts = PRODUCTS.filter((product) =>
+  product.category.toLowerCase().includes('blood') ||
+  product.category.toLowerCase().includes('iv') ||
+  product.category.toLowerCase().includes('syringe')
+);
+
+/*
+|--------------------------------------------------------------------------
+| Homepage
+|--------------------------------------------------------------------------
+*/
 
 export default function Home() {
-  // ✅ CHANGED: Use hardcoded data instead of fetching
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [campaignProducts, setCampaignProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
-
-  // ✅ REMOVED: usePromotionsStore - not needed for static site
-
-  useEffect(() => {
-    // ✅ CHANGED: Use hardcoded data instead of API calls
-    const loadProducts = () => {
-      try {
-        // Use hardcoded products
-        const productsData = HARDCODED_PRODUCTS;
-        const campaignData = HARDCODED_CAMPAIGN_PRODUCTS;
-        const campaigns = HARDCODED_CAMPAIGNS;
-        
-        // Set featured products
-        const featured = productsData.filter((p: Product) => p.featured);
-        setFeaturedProducts(featured.length > 0 ? featured : productsData.slice(0, 8));
-        
-        // Set campaign products
-        setCampaignProducts(campaignData);
-        setActiveCampaigns(campaigns);
-        
-        console.log('✅ Static data loaded successfully!');
-      } catch (err) {
-        console.error('Error loading products:', err);
-        setCampaignProducts([]);
-        setActiveCampaigns([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadProducts();
-  }, []);
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-NG', { 
-      style: 'currency', 
-      currency: 'NGN', 
-      minimumFractionDigits: 0 
-    }).format(price);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
-        <motion.div 
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full shadow-lg"
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header - from separate file */}
+    <div className="min-h-screen bg-slate-50">
       <Header />
 
-      {/* ✅ CHANGED: Use hardcoded promotions instead of store */}
-      {HARDCODED_CAMPAIGNS.length > 0 && (
-        <motion.div 
-          initial={{ y: -50 }}
-          animate={{ y: 0 }}
-          className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 text-white py-3 text-center text-sm font-medium overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
-          <div className="relative z-10">
-            <Sparkles className="inline-block w-4 h-4 mr-2 animate-pulse" />
-            {HARDCODED_CAMPAIGNS[0]?.bannerText || 'Special Offer: Get 20% OFF!'}
-            <Link href="/products" className="ml-3 inline-flex items-center font-semibold hover:text-yellow-200 transition-colors">
-              Shop Now 
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Link>
-          </div>
-        </motion.div>
-      )}
+      {/* HERO */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_35%)]" />
 
-      {/* Hero Banner Area */}
-      <div className="container mx-auto px-4 py-4">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <Link href="/products" className="lg:col-span-3 block">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg overflow-hidden relative h-64 lg:h-80 cursor-pointer group">
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-300" />
-              <div className="relative z-10 p-8 text-white">
-                <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-sm mb-4 group-hover:scale-105 transition-transform duration-300">
-                  Up to 40% Off
-                </span>
-                <h2 className="text-3xl lg:text-4xl font-bold mb-2 group-hover:translate-x-1 transition-transform duration-300">
-                  Medical Equipment Sale
-                </h2>
-                <p className="text-lg mb-4 group-hover:translate-x-1 transition-transform duration-300">
-                  Premium quality healthcare supplies
-                </p>
-                <button className="bg-white text-blue-600 px-6 py-2 rounded-md font-semibold hover:shadow-lg transition-all duration-300 cursor-pointer group-hover:scale-105">
-                  Shop Now →
-                </button>
-              </div>
+        <div className="relative container mx-auto px-4 py-14 sm:py-20 lg:py-24">
+          <div className="max-w-3xl text-white">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium backdrop-blur">
+              <ShieldCheck className="h-4 w-4" />
+              Quality Medical Supplies
+            </span>
+
+            <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+              Medical supplies you can trust.
+            </h1>
+
+            <p className="mt-5 max-w-2xl text-base leading-7 text-blue-100 sm:text-lg">
+              Discover medical equipment, diagnostic supplies, laboratory
+              products and healthcare essentials from FitTrust Medicals.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/products"
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-bold text-blue-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+              >
+                Browse Products
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+
+              <Link
+                href="/products?category=Diagnostics"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur transition hover:bg-white/20"
+              >
+                Diagnostic Supplies
+              </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CATEGORY CARDS */}
+      <section className="container mx-auto px-4 -mt-8 relative z-10">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Link
+            href="/products?category=Diagnostics"
+            className="group rounded-2xl bg-white p-5 shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+          >
+            <Stethoscope className="h-8 w-8 text-blue-600" />
+            <h3 className="mt-3 font-bold text-gray-900">Diagnostics</h3>
+            <p className="mt-1 text-xs text-gray-500">Diagnostic supplies</p>
           </Link>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Link href="/products?category=diagnostic">
-              <div className="bg-blue-500 rounded-lg p-4 text-white text-center hover:opacity-90 transition cursor-pointer">
-                <Stethoscope className="w-8 h-8 mx-auto mb-2" />
-                <div className="font-bold text-sm">Diagnostic Tools</div>
-                <div className="text-xs opacity-90">Up to 30% off</div>
-              </div>
-            </Link>
-            <Link href="/products?category=ppe">
-              <div className="bg-green-500 rounded-lg p-4 text-white text-center hover:opacity-90 transition cursor-pointer">
-                <Shield className="w-8 h-8 mx-auto mb-2" />
-                <div className="font-bold text-sm">PPE Supplies</div>
-                <div className="text-xs opacity-90">Up to 25% off</div>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
+          <Link
+            href="/products?category=Laboratory"
+            className="group rounded-2xl bg-white p-5 shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+          >
+            <Microscope className="h-8 w-8 text-purple-600" />
+            <h3 className="mt-3 font-bold text-gray-900">Laboratory</h3>
+            <p className="mt-1 text-xs text-gray-500">Lab & research supplies</p>
+          </Link>
 
-      {/* Flash Sales Section */}
-      <section className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="bg-red-500 text-white px-6 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5" />
-              <h2 className="font-bold text-lg">FLASH SALES</h2>
-            </div>
-            <Link href="/products?filter=flash-sales" className="text-sm hover:underline">View All &gt;</Link>
-          </div>
-          <div className="p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {featuredProducts.slice(0, 6).map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </div>
+          <Link
+            href="/products?category=IV Sets"
+            className="group rounded-2xl bg-white p-5 shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+          >
+            <Syringe className="h-8 w-8 text-green-600" />
+            <h3 className="mt-3 font-bold text-gray-900">IV & Injection</h3>
+            <p className="mt-1 text-xs text-gray-500">IV sets and syringes</p>
+          </Link>
+
+          <Link
+            href="/products"
+            className="group rounded-2xl bg-white p-5 shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+          >
+            <ShieldCheck className="h-8 w-8 text-orange-500" />
+            <h3 className="mt-3 font-bold text-gray-900">All Products</h3>
+            <p className="mt-1 text-xs text-gray-500">Browse our catalogue</p>
+          </Link>
         </div>
       </section>
 
-      {/* Featured Medical Equipment Section */}
-      <section className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="px-6 py-3 border-b flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-blue-600" />
-              <h2 className="font-bold text-lg text-gray-800">Featured Medical Equipment</h2>
-            </div>
-            <Link href="/products" className="text-blue-600 text-sm hover:underline flex items-center gap-1">
-              See All <ChevronRight className="w-4 h-4" />
-            </Link>
+      {/* FEATURED PRODUCTS */}
+      <section className="container mx-auto px-4 py-12">
+        <div className="mb-6 flex items-end justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">
+              Our Catalogue
+            </p>
+
+            <h2 className="mt-1 text-2xl font-extrabold text-gray-900 sm:text-3xl">
+              Featured Products
+            </h2>
+
+            <p className="mt-1 text-sm text-gray-500">
+              Browse some of our available medical supplies.
+            </p>
           </div>
-          <div className="p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {featuredProducts.slice(0, 6).map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </div>
+
+          <Link
+            href="/products"
+            className="hidden items-center gap-1 text-sm font-semibold text-blue-600 sm:flex"
+          >
+            View all
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {featuredProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              showDiscount
+            />
+          ))}
+        </div>
+
+        <div className="mt-6 text-center sm:hidden">
+          <Link
+            href="/products"
+            className="inline-flex items-center gap-1 font-semibold text-blue-600"
+          >
+            View all products
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
 
-      {/* Diagnostic & Lab Equipment Section */}
-      <section className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="px-6 py-3 border-b flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Microscope className="w-5 h-5 text-purple-600" />
-              <h2 className="font-bold text-lg text-gray-800">Diagnostic & Lab Equipment</h2>
-            </div>
-            <Link href="/products?category=diagnostic" className="text-blue-600 text-sm hover:underline flex items-center gap-1">
-              See All <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {featuredProducts.slice(3, 9).map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Special Offer Banner */}
-      {campaignProducts.length > 0 ? (
-        <section className="container mx-auto px-4 py-8">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg overflow-hidden">
-            <div className="px-6 py-4">
-              <div className="flex items-center gap-2">
-                <Tag className="w-6 h-6 text-yellow-300" />
-                <h2 className="text-white font-bold text-xl">Special Offer | Limited Time</h2>
-              </div>
-              <p className="text-blue-100 text-sm mt-1">Get up to 50% off on selected medical supplies</p>
-              {activeCampaigns.length > 0 && activeCampaigns[0]?.code && (
-                <p className="text-yellow-200 text-xs mt-2 font-medium">
-                  ✨ Use code: {activeCampaigns[0].code} at checkout
+      {/* DIAGNOSTICS */}
+      {diagnosticProducts.length > 0 && (
+        <section className="bg-white border-y border-gray-100">
+          <div className="container mx-auto px-4 py-12">
+            <div className="mb-6 flex items-end justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wider text-purple-600">
+                  Diagnostics & Research
                 </p>
-              )}
+
+                <h2 className="mt-1 text-2xl font-extrabold text-gray-900">
+                  Diagnostic & Laboratory Supplies
+                </h2>
+              </div>
+
+              <Link
+                href="/products?category=Diagnostics"
+                className="hidden items-center gap-1 text-sm font-semibold text-blue-600 sm:flex"
+              >
+                See all
+                <ChevronRight className="h-4 w-4" />
+              </Link>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 p-6 pt-2">
-              {campaignProducts.map((product) => (
-                <div key={product.id} className="bg-white rounded-lg p-4 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="relative">
-                    <img 
-                      src={product.image || '/placeholder.svg'} 
-                      alt={product.name} 
-                      className="w-full h-28 object-contain mb-2"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/placeholder.svg';
-                      }}
-                    />
-                    {product.discountPercentage && (
-                      <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                        -{product.discountPercentage}%
-                      </span>
-                    )}
-                    {product.campaignCode && (
-                      <span className="absolute bottom-0 left-0 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                        {product.campaignCode}
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-xs font-medium text-gray-800 mb-1 line-clamp-2 h-10">{product.name}</h3>
-                  <div className="text-base font-bold text-blue-600">{formatPrice(product.price)}</div>
-                  {product.originalPrice && (
-                    <div className="text-xs text-gray-400 line-through">
-                      {formatPrice(product.originalPrice)}
-                    </div>
-                  )}
-                  <Link href={`/product/${product.id}`}>
-                    <button className="mt-2 w-full bg-blue-600 text-white py-1.5 rounded-md text-xs font-semibold hover:bg-blue-700 transition-all">
-                      Shop Now →
-                    </button>
-                  </Link>
-                </div>
+
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {diagnosticProducts.slice(0, 4).map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  showDiscount
+                />
               ))}
             </div>
           </div>
         </section>
-      ) : (
-        <section className="container mx-auto px-4 py-8">
-          <div className="bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg overflow-hidden">
-            <div className="px-6 py-12 text-center">
-              <Gift className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-600 mb-2">No Active Campaigns</h2>
-              <p className="text-gray-500 text-sm">
-                Check back soon for special offers and discounts!
+      )}
+
+      {/* LAB / HEALTHCARE */}
+      {laboratoryProducts.length > 0 && (
+        <section className="container mx-auto px-4 py-12">
+          <div className="mb-6">
+            <p className="text-sm font-semibold uppercase tracking-wider text-green-600">
+              Healthcare Essentials
+            </p>
+
+            <h2 className="mt-1 text-2xl font-extrabold text-gray-900">
+              Medical & Laboratory Essentials
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {laboratoryProducts.slice(0, 4).map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                showDiscount
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* TRUST SECTION */}
+      <section className="bg-blue-700">
+        <div className="container mx-auto px-4 py-12">
+          <div className="grid gap-8 text-center text-white md:grid-cols-3">
+            <div>
+              <ShieldCheck className="mx-auto h-9 w-9" />
+              <h3 className="mt-3 font-bold">Quality Products</h3>
+              <p className="mt-1 text-sm text-blue-100">
+                Medical supplies selected for quality and reliability.
+              </p>
+            </div>
+
+            <div>
+              <Stethoscope className="mx-auto h-9 w-9" />
+              <h3 className="mt-3 font-bold">Healthcare Focused</h3>
+              <p className="mt-1 text-sm text-blue-100">
+                Products for hospitals, clinics, laboratories and professionals.
+              </p>
+            </div>
+
+            <div>
+              <ArrowRight className="mx-auto h-9 w-9" />
+              <h3 className="mt-3 font-bold">Browse Our Catalogue</h3>
+              <p className="mt-1 text-sm text-blue-100">
+                Explore the complete range of available products.
               </p>
             </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
-      {/* Newsletter Section */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold mb-2">Subscribe to Our Newsletter</h2>
-          <p className="text-blue-100 mb-6">Get the latest updates on new products and special offers</p>
-          <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <input 
-              type="email" 
-              placeholder="Enter your email address"
-              className="flex-1 px-4 py-2 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
-            <Button className="bg-blue-700 hover:bg-blue-800 px-6">
-              Subscribe
-              <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-          </div>
+      {/* FOOTER CTA */}
+      <section className="bg-slate-900">
+        <div className="container mx-auto px-4 py-10 text-center">
+          <h2 className="text-2xl font-bold text-white">
+            Looking for a specific medical product?
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-400">
+            Browse our complete product catalogue.
+          </p>
+
+          <Link
+            href="/products"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition hover:bg-blue-500"
+          >
+            View Products
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
     </div>

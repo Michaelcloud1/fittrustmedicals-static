@@ -1,7 +1,139 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// ... (keep all your existing interfaces: Address, Notification, CustomerProfile, Order, etc.)
+export interface Address {
+  id: string;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  address?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  zipCode?: string;
+  isDefault?: boolean;
+  [key: string]: any;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'order' | 'payment' | 'system' | 'promotion' | string;
+  read: boolean;
+  createdAt: string;
+  [key: string]: any;
+}
+
+export interface CustomerProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  addresses: Address[];
+  wishlist: string[];
+  notifications: Notification[];
+  createdAt: string;
+  updatedAt: string;
+  [key: string]: any;
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  customerEmail?: string;
+  customerName?: string;
+  items: any[];
+  total: number;
+  subtotal?: number;
+  shipping?: number;
+  tax?: number;
+  status: string;
+  staffId?: string;
+  receiptSent?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  [key: string]: any;
+}
+
+export interface StaffPerformance {
+  staffId: string;
+  staffName: string;
+  ordersProcessed: number;
+  totalSales: number;
+  customersServed: number;
+  lastActive: string;
+  [key: string]: any;
+}
+
+export interface InventoryAlert {
+  productId: string;
+  productName: string;
+  currentStock: number;
+  threshold: number;
+  status: 'out' | 'low' | 'ok';
+  [key: string]: any;
+}
+
+export interface WalletTransaction {
+  id: string;
+  type: 'credit' | 'debit' | string;
+  amount: number;
+  description: string;
+  orderId?: string;
+  customerEmail?: string;
+  status: string;
+  createdAt: string;
+  processedAt?: string;
+  [key: string]: any;
+}
+
+export interface BankAccount {
+  id: string;
+  accountName: string;
+  accountNumber: string;
+  bankName: string;
+  bankCode?: string;
+  isDefault?: boolean;
+  [key: string]: any;
+}
+
+export interface WithdrawalRequest {
+  id: string;
+  amount: number;
+  bankAccountId: string;
+  status: 'pending' | 'completed' | 'rejected' | string;
+  requestedAt: string;
+  processedAt?: string;
+  rejectionReason?: string;
+  [key: string]: any;
+}
+
+export interface Wallet {
+  balance: number;
+  totalEarned: number;
+  totalWithdrawn: number;
+  pendingWithdrawals: number;
+  transactions: WalletTransaction[];
+  bankAccounts: BankAccount[];
+  withdrawalRequests: WithdrawalRequest[];
+  [key: string]: any;
+}
+
+export interface FinancialMetrics {
+  dailyRevenue: number;
+  weeklyRevenue: number;
+  monthlyRevenue: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  topProducts: any[];
+  walletBalance: number;
+  [key: string]: any;
+}
 
 interface AuthStore {
   isAuthenticated: boolean;
@@ -111,11 +243,25 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       addInventoryAlert: (alert) => {
-        const status = alert.currentStock === 0 ? 'out' : alert.currentStock <= alert.threshold ? 'low' : 'ok';
+        const status: InventoryAlert['status'] =
+          alert.currentStock === 0
+            ? 'out'
+            : alert.currentStock <= alert.threshold
+              ? 'low'
+              : 'ok';
+
+        const newAlert: InventoryAlert = {
+          productId: alert.productId,
+          productName: alert.productName,
+          currentStock: alert.currentStock,
+          threshold: alert.threshold,
+          status,
+        };
+
         set((state) => ({
           inventoryAlerts: [
             ...state.inventoryAlerts.filter((a) => a.productId !== alert.productId),
-            { ...alert, status },
+            newAlert,
           ],
         }));
       },
@@ -139,8 +285,11 @@ export const useAuthStore = create<AuthStore>()(
 
       addNotification: (notification) => {
         const newNotification: Notification = {
-          ...notification,
           id: 'notif-' + Date.now(),
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          read: notification.read,
           createdAt: new Date().toISOString(),
         };
         set((state) => ({
@@ -484,14 +633,21 @@ export const useAuthStore = create<AuthStore>()(
       // ========== ORDER ACTIONS ==========
       addOrder: (order) => {
         const newOrder: Order = {
-          ...order,
-          id: 'order-' + Date.now(),
-          orderNumber: 'FT' + Date.now().toString().slice(-8),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          receiptSent: false,
-          customerEmail: get().customer?.email,
-        };
+  id: 'order-' + Date.now(),
+  orderNumber: 'FT' + Date.now().toString().slice(-8),
+  items: order.items || [],
+  total: order.total || 0,
+  status: order.status || 'pending',
+  customerEmail: order.customerEmail || get().customer?.email,
+  customerName: order.customerName || get().customer?.name,
+  subtotal: order.subtotal,
+  shipping: order.shipping,
+  tax: order.tax,
+  staffId: order.staffId,
+  receiptSent: false,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
         
         set((state) => ({ orders: [...state.orders, newOrder] }));
         
@@ -710,9 +866,13 @@ export const useAuthStore = create<AuthStore>()(
 
       addBankAccount: (account) => {
         const newAccount: BankAccount = {
-          ...account,
-          id: 'bank-' + Date.now(),
-        };
+  id: 'bank-' + Date.now(),
+  accountName: account.accountName,
+  accountNumber: account.accountNumber,
+  bankName: account.bankName,
+  bankCode: account.bankCode,
+  isDefault: account.isDefault,
+};
         
         set((state) => ({
           wallet: {

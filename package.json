@@ -3,14 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "description": "Fittrustmedicals - Medical E-commerce Platform",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "email:test": "node scripts/test-email.js",
-    "postinstall": "npm run build"
-  },
+ "scripts": {
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start",
+  "convert-products": "node scripts/convert-products.js",
+  "lint": "next lint",
+  "email:test": "node scripts/test-email.js",
+  "postinstall": "npm run build"
+},
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1025.0",
     "@prisma/client": "^7.8.0",

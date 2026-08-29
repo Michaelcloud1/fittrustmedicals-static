@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { BackendStatus } from '@/components/BackendStatus';
 import { Footer } from '@/components/layout/Footer';
 import ClientWrapper from '@/components/layout/ClientWrapper';
 
@@ -17,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans overflow-x-hidden w-full">
-        <BackendStatus />
+      
         {/* ⚠️ MAKE SURE THERE IS NO <Header /> HERE ⚠️ */}
         <main className="min-h-screen">{children}</main>
         <Footer />

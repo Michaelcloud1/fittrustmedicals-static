@@ -12,6 +12,7 @@ import {
 
 import { Header } from '@/components/layout/Header';
 import { ProductCard } from '@/components/product/ProductCard';
+import { products } from '@/data/products';
 
 interface Product {
   id: string;
@@ -52,7 +53,7 @@ const PRODUCTS: Product[] = [
     originalPrice: 1000,
     category: 'Diagnostics',
     description: 'Digital thermometer for fast and convenient temperature measurement.',
-    image: '/images/products/digital-thermometer.jpg',
+    image: '/images/products/digital-thermometer-1.jpg',
     stockQuantity: 1,
     isActive: true,
     isPromotional: true,
@@ -70,7 +71,7 @@ const PRODUCTS: Product[] = [
     category: 'IV Sets & Accessories',
     description:
       'Sterile single-use blood transfusion set with integrated blood filter.',
-    image: '/images/products/blood-transfusion-set.jpg',
+    image: '/images/products/blood-transfusion-set-1.jpg',
     stockQuantity: 4,
     isActive: true,
     isPromotional: true,
@@ -88,7 +89,7 @@ const PRODUCTS: Product[] = [
     category: 'Serological Reagent',
     description:
       'Serological reagent for Widal agglutination testing.',
-    image: '/images/products/widal-2-antigens.webp',
+    image: '/images/products/rapid-test-kit-review-1.jpg',
     stockQuantity: 3,
     isActive: true,
     isPromotional: true,
@@ -106,7 +107,7 @@ const PRODUCTS: Product[] = [
     category: 'Diagnostics & Research',
     description:
       'Medical-grade cryogenic storage tube suitable for laboratory and research applications.',
-    image: '/images/products/cryovial-tube.jpeg',
+    image: '/images/products/cryovial-tube-1.jpg',
     stockQuantity: 1,
     isActive: true,
     isPromotional: true,
@@ -124,7 +125,7 @@ const PRODUCTS: Product[] = [
     category: 'Diagnostics & Research',
     description:
       'Optical-quality microscope slides suitable for laboratory and educational applications.',
-    image: '/images/products/micro-slides.jpeg',
+    image: '/images/products/microscope-slides-1.jpg',
     stockQuantity: 2,
     isActive: true,
     isPromotional: true,
@@ -142,7 +143,7 @@ const PRODUCTS: Product[] = [
     category: 'Blood Collection Tubes',
     description:
       'Lithium heparin blood collection tubes designed for plasma-based laboratory testing.',
-    image: '/images/products/lithium-heparin-tube.jpeg',
+    image: '/images/products/lithium-heparin-non-vacuum-tube-1.jpg',
     stockQuantity: 1,
     isActive: true,
     isPromotional: true,
@@ -159,7 +160,7 @@ const PRODUCTS: Product[] = [
     originalPrice: 4000,
     category: 'Blood Collection Tubes',
     description: 'Blood grouping serum Anti-D reagent.',
-    image: '/images/products/blood-grouping-sera-anti-d.jpeg',
+    image: '/images/products/red-top-blood-collection-tube-2.jpg',
     stockQuantity: 13,
     isActive: true,
     isPromotional: true,
@@ -177,7 +178,7 @@ const PRODUCTS: Product[] = [
     category: 'Diabetes Care',
     description:
       'Sterile disposable U-100 insulin syringe designed for accurate insulin administration.',
-    image: '/images/products/insulin-syringe.jpeg',
+    image: '/images/products/yellow-blood-lancets-1.jpg',
     stockQuantity: 33,
     isActive: true,
     isPromotional: true,
@@ -205,15 +206,11 @@ const formatPrice = (price: number) =>
 const featuredProducts = PRODUCTS.filter((product) => product.featured);
 
 const diagnosticProducts = PRODUCTS.filter((product) =>
-  product.category.toLowerCase().includes('diagnostic') ||
-  product.category.toLowerCase().includes('research') ||
-  product.category.toLowerCase().includes('serological')
+  product.category.toLowerCase().includes('diagnostic')
 );
 
 const laboratoryProducts = PRODUCTS.filter((product) =>
-  product.category.toLowerCase().includes('blood') ||
-  product.category.toLowerCase().includes('iv') ||
-  product.category.toLowerCase().includes('syringe')
+  product.category.toLowerCase().includes('laboratory')
 );
 
 /*
@@ -339,7 +336,6 @@ export default function Home() {
             <ProductCard
               key={product.id}
               product={product}
-              showDiscount
             />
           ))}
         </div>
@@ -384,7 +380,6 @@ export default function Home() {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  showDiscount
                 />
               ))}
             </div>
@@ -410,7 +405,6 @@ export default function Home() {
               <ProductCard
                 key={product.id}
                 product={product}
-                showDiscount
               />
             ))}
           </div>

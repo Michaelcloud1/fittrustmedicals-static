@@ -29,16 +29,18 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
+
+      {/* =====================================================
+          HEADER CONTAINER
+      ====================================================== */}
       <div className="container mx-auto px-3 sm:px-4">
 
-        {/* =====================================
-            TOP ROW
-            Logo + Brand + Menu
+        {/* ===================================================
+            ROW 1 — LOGO + BRAND + MENU
             NO SEARCH BAR HERE
-        ====================================== */}
+        ==================================================== */}
         <div className="flex h-16 items-center">
 
-          {/* LOGO + BRAND */}
           <Link
             href="/"
             className="flex min-w-0 items-center gap-2"
@@ -65,15 +67,15 @@ export function Header() {
             </div>
           </Link>
 
-          {/* DESKTOP SEARCH */}
+          {/* DESKTOP SEARCH ONLY */}
           <form
             onSubmit={submitSearch}
-            className="mx-auto hidden max-w-xl flex-1 md:block"
+            className="mx-6 hidden max-w-xl flex-1 md:block"
           >
             <div className="relative">
               <Search
                 size={18}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
               />
 
               <input
@@ -86,8 +88,8 @@ export function Header() {
             </div>
           </form>
 
-          {/* DESKTOP NAV */}
-          <nav className="hidden items-center gap-5 text-sm font-semibold text-gray-700 lg:flex">
+          {/* DESKTOP NAVIGATION */}
+          <nav className="hidden shrink-0 items-center gap-5 text-sm font-semibold text-gray-700 lg:flex">
             <Link href="/" className="hover:text-blue-600">
               Home
             </Link>
@@ -105,7 +107,7 @@ export function Header() {
             </Link>
           </nav>
 
-          {/* MOBILE MENU */}
+          {/* MOBILE MENU BUTTON */}
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
@@ -116,13 +118,52 @@ export function Header() {
           </button>
         </div>
 
-        {/* =====================================
+        {/* ===================================================
+            MOBILE NAVIGATION
+            HOME / PRODUCTS / ABOUT / CONTACT
+        ==================================================== */}
+        <nav className="flex items-center justify-between border-t border-gray-100 py-2 md:hidden">
+
+          <Link
+            href="/"
+            className="px-2 py-2 text-xs font-semibold text-gray-700 hover:text-blue-600"
+          >
+            Home
+          </Link>
+
+          <Link
+            href="/products"
+            className="px-2 py-2 text-xs font-semibold text-gray-700 hover:text-blue-600"
+          >
+            Products
+          </Link>
+
+          <Link
+            href="/about"
+            className="px-2 py-2 text-xs font-semibold text-gray-700 hover:text-blue-600"
+          >
+            About
+          </Link>
+
+          <Link
+            href="/contact"
+            className="px-2 py-2 text-xs font-semibold text-gray-700 hover:text-blue-600"
+          >
+            Contact
+          </Link>
+
+        </nav>
+
+        {/* ===================================================
             MOBILE SEARCH
-            ONLY ONE SEARCH BAR
-        ====================================== */}
-        <div className="block pb-3 md:hidden">
+            ONLY SEARCH BAR ON MOBILE
+        ==================================================== */}
+        <div className="pb-3 md:hidden">
+
           <form onSubmit={submitSearch}>
+
             <div className="relative">
+
               <Search
                 size={18}
                 className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
@@ -133,16 +174,19 @@ export function Header() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search medical products..."
-                className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-11 pr-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-11 pr-4 text-sm text-gray-800 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
               />
+
             </div>
+
           </form>
+
         </div>
       </div>
 
-      {/* =====================================
+      {/* =====================================================
           MOBILE MENU DRAWER
-      ====================================== */}
+      ====================================================== */}
       {menuOpen && (
         <>
           <div
@@ -152,7 +196,7 @@ export function Header() {
 
           <aside className="fixed right-0 top-0 z-[101] h-full w-[88%] max-w-sm overflow-y-auto bg-white shadow-2xl">
 
-            {/* MENU HEADER */}
+            {/* DRAWER HEADER */}
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
 
               <Link
@@ -160,6 +204,7 @@ export function Header() {
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2"
               >
+
                 <div className="relative h-9 w-9">
                   <Image
                     src="/images/logo.png"
@@ -179,6 +224,7 @@ export function Header() {
                     Healthcare Supplies
                   </div>
                 </div>
+
               </Link>
 
               <button
@@ -189,9 +235,10 @@ export function Header() {
               >
                 <X size={22} />
               </button>
+
             </div>
 
-            {/* MENU LINKS */}
+            {/* DRAWER NAVIGATION */}
             <nav className="space-y-1 px-4 py-5">
 
               <Link
@@ -242,7 +289,9 @@ export function Header() {
                   {category.name}
                 </Link>
               ))}
+
             </nav>
+
           </aside>
         </>
       )}

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { products } from '@/data/products';
 
-export default function ProductsPage() {
+function ProductsContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
@@ -16,10 +16,41 @@ export default function ProductsPage() {
     ),
   ];
 
+  /*
+   * Read category/search from the URL.
+   *
+   * This makes these links work:
+   * /products
+   * /products?category=Diagnostics
+   * /products?search=thermometer
+   */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    const category = params.get('category');
+    const search = params.get('search');
+
+    if (category && categories.includes(category)) {
+      setActiveCategory(category);
+    } else {
+      setActiveCategory('All');
+    }
+
+    if (search) {
+      setSearchQuery(search);
+    } else {
+      setSearchQuery('');
+    }
+  }, []);
+
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+    const query = searchQuery.trim().toLowerCase();
+
+    const matchesSearch =
+      query === '' ||
+      product.name.toLowerCase().includes(query) ||
+      product.category.toLowerCase().includes(query) ||
+      (product.description || '').toLowerCase().includes(query);
 
     const matchesCategory =
       activeCategory === 'All' ||
@@ -28,106 +59,179 @@ export default function ProductsPage() {
     return matchesSearch && matchesCategory;
   });
 
+  const handleCategoryChange = (category: string) => {
+    setActiveCategory(category);
+
+    const url =
+      category === 'All'
+        ? '/products'
+        : `/products?category=${encodeURIComponent(category)}`;
+
+    window.history.replaceState({}, '', url);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+
+    const params = new URLSearchParams(window.location.search);
+
+    if (value.trim()) {
+      params.set('search', value.trim());
+    } else {
+      params.delete('search');
+    }
+
+    if (activeCategory !== 'All') {
+      params.set('category', activeCategory);
+    }
+
+    const queryString = params.toString();
+
+    window.history.replaceState(
+      {},
+      '',
+      queryString ? `/products?${queryString}` : '/products'
+    );
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            All Products
-          </h1>
+    <div className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
 
-          <p className="text-gray-500 mt-1">
-            Browse our complete catalog of medical supplies
-          </p>
+        {/* PAGE HEADER */}
+        <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+              {activeCategory === 'All'
+                ? 'All Products'
+                : activeCategory}
+            </h1>
+
+            <p className="mt-1 text-gray-500">
+              Browse our complete catalog of medical supplies.
+            </p>
+          </div>
+
+          {/* SEARCH */}
+          <div className="relative w-full md:w-80">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={20}
+            />
+
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 bg-white py-3 pl-10 pr-4 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
         </div>
 
-        <div className="relative w-full md:w-72">
-          <input
-            type="text"
-            placeholder="Search products..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+        <div className="flex flex-col gap-8 lg:flex-row">
 
-          <Search
-            className="absolute left-3 top-2.5 text-gray-400"
-            size={20}
-          />
-        </div>
-      </div>
+          {/* FILTER SIDEBAR */}
+          <aside className="w-full shrink-0 lg:w-64">
+            <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm lg:sticky lg:top-24">
 
-      <div className="flex flex-col lg:flex-row gap-8">
+              <div className="mb-5 flex items-center gap-2 border-b pb-4">
+                <SlidersHorizontal size={20} />
 
-        {/* Filter Sidebar */}
-        <aside className="w-full lg:w-64 shrink-0">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 sticky top-24">
+                <h2 className="text-lg font-bold">
+                  Categories
+                </h2>
+              </div>
 
-            <div className="flex items-center gap-2 mb-6 border-b pb-4">
-              <SlidersHorizontal size={20} />
-
-              <h2 className="font-bold text-lg">
-                Filters
-              </h2>
-            </div>
-
-            <h3 className="font-semibold text-gray-900 mb-3">
-              Categories
-            </h3>
-
-            <ul className="space-y-2">
-              {categories.map((category) => (
-                <li key={category}>
+              <div className="flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-2">
+                {categories.map((category) => (
                   <button
-                    onClick={() => setActiveCategory(category)}
-                    className={`w-full text-left px-2 py-1.5 rounded transition ${
+                    key={category}
+                    type="button"
+                    onClick={() => handleCategoryChange(category)}
+                    className={`whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition lg:block lg:w-full ${
                       activeCategory === category
-                        ? 'text-blue-600 font-medium bg-blue-50'
+                        ? 'bg-blue-50 font-semibold text-blue-600'
                         : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     {category}
                   </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-
-        {/* Product Grid */}
-        <main className="flex-1">
-
-          <div className="mb-4 text-sm text-gray-500">
-            Showing {filteredProducts.length} results
-          </div>
-
-          {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                />
-              ))}
+                ))}
+              </div>
             </div>
-          ) : (
-            <div className="bg-white rounded-xl p-16 text-center border border-gray-100">
-              <Search
-                className="mx-auto text-gray-300 mb-4"
-                size={48}
-              />
+          </aside>
 
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                No products found
-              </h3>
+          {/* PRODUCTS */}
+          <main className="min-w-0 flex-1">
 
-              <p className="text-gray-500">
-                Try adjusting your search or filter criteria.
+            <div className="mb-5 flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                Showing{' '}
+                <span className="font-semibold text-gray-700">
+                  {filteredProducts.length}
+                </span>{' '}
+                {filteredProducts.length === 1 ? 'product' : 'products'}
               </p>
+
+              {activeCategory !== 'All' && (
+                <button
+                  type="button"
+                  onClick={() => handleCategoryChange('All')}
+                  className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+                >
+                  View all products
+                </button>
+              )}
             </div>
-          )}
-        </main>
+
+            {filteredProducts.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-gray-100 bg-white p-10 text-center sm:p-16">
+                <Search
+                  className="mx-auto mb-4 text-gray-300"
+                  size={48}
+                />
+
+                <h3 className="mb-2 text-xl font-bold text-gray-900">
+                  No products found
+                </h3>
+
+                <p className="text-gray-500">
+                  Try adjusting your search or category.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    handleCategoryChange('All');
+                  }}
+                  className="mt-5 rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                >
+                  View All Products
+                </button>
+              </div>
+            )}
+          </main>
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProductsContent />
+    </Suspense>
   );
 }

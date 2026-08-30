@@ -31,15 +31,15 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
       <div className="container mx-auto px-3 sm:px-4">
 
-        {/* =====================================================
+        {/* =========================
             TOP HEADER ROW
-        ====================================================== */}
-        <div className="flex min-h-[58px] items-center justify-between gap-2 sm:min-h-[64px]">
+        ========================== */}
+        <div className="flex min-h-[64px] items-center gap-2 sm:gap-3">
 
           {/* LOGO + BRAND */}
           <Link
             href="/"
-            className="flex min-w-0 items-center gap-2"
+            className="flex min-w-0 shrink items-center gap-2 sm:gap-3"
           >
             <div className="relative h-9 w-9 shrink-0 sm:h-10 sm:w-10">
               <Image
@@ -52,29 +52,26 @@ export function Header() {
               />
             </div>
 
-            <div className="min-w-0 leading-tight">
-              <div className="truncate text-xs font-extrabold text-blue-700 sm:text-sm">
+            <div className="min-w-0">
+              <div className="truncate text-[15px] font-extrabold leading-tight text-blue-700 sm:text-lg">
                 FITTRUST MEDICALS
               </div>
 
-              <div className="truncate text-[9px] text-gray-500 sm:text-[10px]">
+              <div className="truncate text-[10px] leading-tight text-gray-500 sm:text-xs">
                 Healthcare Supplies
               </div>
             </div>
           </Link>
 
-          {/* =====================================================
-              DESKTOP SEARCH
-              Hidden on mobile.
-          ====================================================== */}
+          {/* DESKTOP SEARCH ONLY */}
           <form
             onSubmit={submitSearch}
-            className="mx-4 hidden max-w-xl flex-1 md:block"
+            className="mx-auto hidden max-w-xl flex-1 md:block"
           >
             <div className="relative">
               <Search
                 size={18}
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
               />
 
               <input
@@ -82,56 +79,51 @@ export function Header() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search medical products..."
-                className="w-full rounded-full border border-gray-200 bg-gray-50 py-2.5 pl-11 pr-4 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-full border border-gray-200 bg-gray-50 py-2.5 pl-11 pr-4 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
           </form>
 
-          {/* =====================================================
-              DESKTOP NAVIGATION
-          ====================================================== */}
+          {/* DESKTOP NAVIGATION */}
           <nav className="hidden shrink-0 items-center gap-5 text-sm font-semibold text-gray-700 lg:flex">
-            <Link href="/" className="transition hover:text-blue-600">
+            <Link href="/" className="hover:text-blue-600">
               Home
             </Link>
 
-            <Link href="/products" className="transition hover:text-blue-600">
+            <Link href="/products" className="hover:text-blue-600">
               Products
             </Link>
 
-            <Link href="/about" className="transition hover:text-blue-600">
+            <Link href="/about" className="hover:text-blue-600">
               About
             </Link>
 
-            <Link href="/contact" className="transition hover:text-blue-600">
+            <Link href="/contact" className="hover:text-blue-600">
               Contact
             </Link>
           </nav>
 
-          {/* =====================================================
-              MOBILE MENU BUTTON
-          ====================================================== */}
+          {/* MOBILE MENU BUTTON */}
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-700 transition hover:bg-gray-100 sm:h-10 sm:w-10 lg:hidden"
+            className="ml-auto shrink-0 rounded-lg p-2 text-gray-700 transition hover:bg-gray-100"
             aria-label="Open menu"
-            aria-expanded={menuOpen}
           >
-            <Menu size={22} />
+            <Menu size={23} />
           </button>
         </div>
 
-        {/* =====================================================
-            MOBILE SEARCH
-            THIS IS THE ONLY SEARCH BAR SHOWN ON MOBILE.
-        ====================================================== */}
+        {/* =========================
+            MOBILE SEARCH ROW
+            Only visible below md
+        ========================== */}
         <div className="pb-3 md:hidden">
           <form onSubmit={submitSearch}>
             <div className="relative">
               <Search
-                size={17}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
               />
 
               <input
@@ -139,22 +131,21 @@ export function Header() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search medical products..."
-                className="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-11 pr-4 text-sm text-gray-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
               />
             </div>
           </form>
         </div>
-
       </div>
 
-      {/* =======================================================
+      {/* =========================
           MOBILE SIDE MENU
-      ======================================================== */}
+      ========================== */}
       {menuOpen && (
         <>
           {/* Overlay */}
           <div
-            className="fixed inset-0 z-[100] bg-black/40"
+            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[1px]"
             onClick={() => setMenuOpen(false)}
           />
 
@@ -163,30 +154,40 @@ export function Header() {
 
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-
-              <div>
-                <div className="text-sm font-extrabold text-blue-700">
-                  FITTRUST MEDICALS
+              <div className="flex items-center gap-2">
+                <div className="relative h-9 w-9">
+                  <Image
+                    src="/images/logo.png"
+                    alt="FitTrust Medicals"
+                    fill
+                    sizes="36px"
+                    className="object-contain"
+                  />
                 </div>
 
-                <div className="text-[10px] text-gray-500">
-                  Healthcare Supplies
+                <div>
+                  <div className="text-sm font-extrabold text-blue-700">
+                    FITTRUST MEDICALS
+                  </div>
+
+                  <div className="text-[10px] text-gray-500">
+                    Healthcare Supplies
+                  </div>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 transition hover:bg-gray-100"
+                className="rounded-lg p-2 text-gray-600 transition hover:bg-gray-100"
                 aria-label="Close menu"
               >
                 <X size={22} />
               </button>
-
             </div>
 
             {/* Drawer Navigation */}
-            <nav className="space-y-1 p-4">
+            <nav className="space-y-1 px-4 py-5">
 
               <Link
                 href="/"
@@ -222,9 +223,9 @@ export function Header() {
 
               <div className="my-4 border-t border-gray-100" />
 
-              <p className="px-4 pb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+              <div className="px-4 pb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
                 Categories
-              </p>
+              </div>
 
               {categories.map((category) => (
                 <Link
@@ -236,7 +237,6 @@ export function Header() {
                   {category.name}
                 </Link>
               ))}
-
             </nav>
           </aside>
         </>

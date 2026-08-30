@@ -31,15 +31,17 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
       <div className="container mx-auto px-3 sm:px-4">
 
-        {/* =========================
-            TOP HEADER ROW
-        ========================== */}
-        <div className="flex min-h-[64px] items-center gap-2 sm:gap-3">
+        {/* =====================================
+            TOP ROW
+            Logo + Brand + Menu
+            NO SEARCH BAR HERE
+        ====================================== */}
+        <div className="flex h-16 items-center">
 
           {/* LOGO + BRAND */}
           <Link
             href="/"
-            className="flex min-w-0 shrink items-center gap-2 sm:gap-3"
+            className="flex min-w-0 items-center gap-2"
           >
             <div className="relative h-9 w-9 shrink-0 sm:h-10 sm:w-10">
               <Image
@@ -53,17 +55,17 @@ export function Header() {
             </div>
 
             <div className="min-w-0">
-              <div className="truncate text-[15px] font-extrabold leading-tight text-blue-700 sm:text-lg">
+              <div className="whitespace-nowrap text-[14px] font-extrabold leading-tight text-blue-700 sm:text-lg">
                 FITTRUST MEDICALS
               </div>
 
-              <div className="truncate text-[10px] leading-tight text-gray-500 sm:text-xs">
+              <div className="whitespace-nowrap text-[9px] leading-tight text-gray-500 sm:text-xs">
                 Healthcare Supplies
               </div>
             </div>
           </Link>
 
-          {/* DESKTOP SEARCH ONLY */}
+          {/* DESKTOP SEARCH */}
           <form
             onSubmit={submitSearch}
             className="mx-auto hidden max-w-xl flex-1 md:block"
@@ -79,13 +81,13 @@ export function Header() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search medical products..."
-                className="w-full rounded-full border border-gray-200 bg-gray-50 py-2.5 pl-11 pr-4 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-full border border-gray-200 bg-gray-50 py-2.5 pl-11 pr-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
           </form>
 
-          {/* DESKTOP NAVIGATION */}
-          <nav className="hidden shrink-0 items-center gap-5 text-sm font-semibold text-gray-700 lg:flex">
+          {/* DESKTOP NAV */}
+          <nav className="hidden items-center gap-5 text-sm font-semibold text-gray-700 lg:flex">
             <Link href="/" className="hover:text-blue-600">
               Home
             </Link>
@@ -103,27 +105,27 @@ export function Header() {
             </Link>
           </nav>
 
-          {/* MOBILE MENU BUTTON */}
+          {/* MOBILE MENU */}
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="ml-auto shrink-0 rounded-lg p-2 text-gray-700 transition hover:bg-gray-100"
+            className="ml-auto shrink-0 rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden"
             aria-label="Open menu"
           >
             <Menu size={23} />
           </button>
         </div>
 
-        {/* =========================
-            MOBILE SEARCH ROW
-            Only visible below md
-        ========================== */}
-        <div className="pb-3 md:hidden">
+        {/* =====================================
+            MOBILE SEARCH
+            ONLY ONE SEARCH BAR
+        ====================================== */}
+        <div className="block pb-3 md:hidden">
           <form onSubmit={submitSearch}>
             <div className="relative">
               <Search
                 size={18}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
               />
 
               <input
@@ -131,30 +133,33 @@ export function Header() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search medical products..."
-                className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-11 pr-4 text-sm text-gray-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-11 pr-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
               />
             </div>
           </form>
         </div>
       </div>
 
-      {/* =========================
-          MOBILE SIDE MENU
-      ========================== */}
+      {/* =====================================
+          MOBILE MENU DRAWER
+      ====================================== */}
       {menuOpen && (
         <>
-          {/* Overlay */}
           <div
-            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[1px]"
+            className="fixed inset-0 z-[100] bg-black/40"
             onClick={() => setMenuOpen(false)}
           />
 
-          {/* Drawer */}
           <aside className="fixed right-0 top-0 z-[101] h-full w-[88%] max-w-sm overflow-y-auto bg-white shadow-2xl">
 
-            {/* Drawer Header */}
+            {/* MENU HEADER */}
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-              <div className="flex items-center gap-2">
+
+              <Link
+                href="/"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2"
+              >
                 <div className="relative h-9 w-9">
                   <Image
                     src="/images/logo.png"
@@ -174,25 +179,25 @@ export function Header() {
                     Healthcare Supplies
                   </div>
                 </div>
-              </div>
+              </Link>
 
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
-                className="rounded-lg p-2 text-gray-600 transition hover:bg-gray-100"
+                className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
                 aria-label="Close menu"
               >
                 <X size={22} />
               </button>
             </div>
 
-            {/* Drawer Navigation */}
+            {/* MENU LINKS */}
             <nav className="space-y-1 px-4 py-5">
 
               <Link
                 href="/"
                 onClick={() => setMenuOpen(false)}
-                className="block rounded-xl px-4 py-3 font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-700"
+                className="block rounded-xl px-4 py-3 font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700"
               >
                 Home
               </Link>
@@ -200,7 +205,7 @@ export function Header() {
               <Link
                 href="/products"
                 onClick={() => setMenuOpen(false)}
-                className="block rounded-xl px-4 py-3 font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-700"
+                className="block rounded-xl px-4 py-3 font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700"
               >
                 All Products
               </Link>
@@ -208,7 +213,7 @@ export function Header() {
               <Link
                 href="/about"
                 onClick={() => setMenuOpen(false)}
-                className="block rounded-xl px-4 py-3 font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-700"
+                className="block rounded-xl px-4 py-3 font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700"
               >
                 About
               </Link>
@@ -216,7 +221,7 @@ export function Header() {
               <Link
                 href="/contact"
                 onClick={() => setMenuOpen(false)}
-                className="block rounded-xl px-4 py-3 font-medium text-gray-700 transition hover:bg-blue-50 hover:text-blue-700"
+                className="block rounded-xl px-4 py-3 font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700"
               >
                 Contact
               </Link>
@@ -232,7 +237,7 @@ export function Header() {
                   key={category.name}
                   href={category.href}
                   onClick={() => setMenuOpen(false)}
-                  className="block rounded-xl px-4 py-3 text-sm text-gray-600 transition hover:bg-blue-50 hover:text-blue-700"
+                  className="block rounded-xl px-4 py-3 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-700"
                 >
                   {category.name}
                 </Link>

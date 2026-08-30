@@ -30,17 +30,16 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
 
-      {/* =====================================================
-          HEADER CONTAINER
-      ====================================================== */}
       <div className="container mx-auto px-3 sm:px-4">
 
-        {/* ===================================================
-            ROW 1 — LOGO + BRAND + MENU
-            NO SEARCH BAR HERE
-        ==================================================== */}
+        {/* =========================================
+            TOP ROW
+            LOGO + BRAND + MENU
+            NO SEARCH BAR
+        ========================================== */}
         <div className="flex h-16 items-center">
 
+          {/* LOGO */}
           <Link
             href="/"
             className="flex min-w-0 items-center gap-2"
@@ -73,6 +72,7 @@ export function Header() {
             className="mx-6 hidden max-w-xl flex-1 md:block"
           >
             <div className="relative">
+
               <Search
                 size={18}
                 className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
@@ -85,26 +85,41 @@ export function Header() {
                 placeholder="Search medical products..."
                 className="w-full rounded-full border border-gray-200 bg-gray-50 py-2.5 pl-11 pr-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
+
             </div>
           </form>
 
           {/* DESKTOP NAVIGATION */}
           <nav className="hidden shrink-0 items-center gap-5 text-sm font-semibold text-gray-700 lg:flex">
-            <Link href="/" className="hover:text-blue-600">
+
+            <Link
+              href="/"
+              className="hover:text-blue-600"
+            >
               Home
             </Link>
 
-            <Link href="/products" className="hover:text-blue-600">
+            <Link
+              href="/products"
+              className="hover:text-blue-600"
+            >
               Products
             </Link>
 
-            <Link href="/about" className="hover:text-blue-600">
+            <Link
+              href="/about"
+              className="hover:text-blue-600"
+            >
               About
             </Link>
 
-            <Link href="/contact" className="hover:text-blue-600">
+            <Link
+              href="/contact"
+              className="hover:text-blue-600"
+            >
               Contact
             </Link>
+
           </nav>
 
           {/* MOBILE MENU BUTTON */}
@@ -116,48 +131,49 @@ export function Header() {
           >
             <Menu size={23} />
           </button>
+
         </div>
 
-        {/* ===================================================
+        {/* =========================================
             MOBILE NAVIGATION
-            HOME / PRODUCTS / ABOUT / CONTACT
-        ==================================================== */}
+            THIS IS THE ONLY HOME/PRODUCTS/ABOUT/CONTACT
+        ========================================== */}
         <nav className="flex items-center justify-between border-t border-gray-100 py-2 md:hidden">
 
           <Link
             href="/"
-            className="px-2 py-2 text-xs font-semibold text-gray-700 hover:text-blue-600"
+            className="text-xs font-semibold text-gray-700 hover:text-blue-600"
           >
             Home
           </Link>
 
           <Link
             href="/products"
-            className="px-2 py-2 text-xs font-semibold text-gray-700 hover:text-blue-600"
+            className="text-xs font-semibold text-gray-700 hover:text-blue-600"
           >
             Products
           </Link>
 
           <Link
             href="/about"
-            className="px-2 py-2 text-xs font-semibold text-gray-700 hover:text-blue-600"
+            className="text-xs font-semibold text-gray-700 hover:text-blue-600"
           >
             About
           </Link>
 
           <Link
             href="/contact"
-            className="px-2 py-2 text-xs font-semibold text-gray-700 hover:text-blue-600"
+            className="text-xs font-semibold text-gray-700 hover:text-blue-600"
           >
             Contact
           </Link>
 
         </nav>
 
-        {/* ===================================================
+        {/* =========================================
             MOBILE SEARCH
-            ONLY SEARCH BAR ON MOBILE
-        ==================================================== */}
+            THIS IS THE ONLY MOBILE SEARCH BAR
+        ========================================== */}
         <div className="pb-3 md:hidden">
 
           <form onSubmit={submitSearch}>
@@ -182,11 +198,12 @@ export function Header() {
           </form>
 
         </div>
+
       </div>
 
-      {/* =====================================================
+      {/* =========================================
           MOBILE MENU DRAWER
-      ====================================================== */}
+      ========================================== */}
       {menuOpen && (
         <>
           <div
@@ -196,7 +213,6 @@ export function Header() {
 
           <aside className="fixed right-0 top-0 z-[101] h-full w-[88%] max-w-sm overflow-y-auto bg-white shadow-2xl">
 
-            {/* DRAWER HEADER */}
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
 
               <Link
@@ -238,7 +254,6 @@ export function Header() {
 
             </div>
 
-            {/* DRAWER NAVIGATION */}
             <nav className="space-y-1 px-4 py-5">
 
               <Link
@@ -295,6 +310,7 @@ export function Header() {
           </aside>
         </>
       )}
+
     </header>
   );
 }

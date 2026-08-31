@@ -2,82 +2,81 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================
+   BASE
+   ========================================================= */
+
 @layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
   body {
     @apply bg-white text-gray-900;
     overflow-x: hidden;
     width: 100%;
-  }
-  
-  /* Better font rendering */
-  html {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
-    width: 100%;
-  }
-  
-  /* Smooth scrolling */
-  html {
-    scroll-behavior: smooth;
+    margin: 0;
   }
 }
+
+/* =========================================================
+   COMPONENTS
+   ========================================================= */
 
 @layer components {
   .container-custom {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
-  
-  /* Mobile-first container */
+
   .container-mobile {
     @apply px-3 sm:px-4 md:px-6 lg:px-8 mx-auto;
   }
-  
-  /* Responsive grid - FIXED for mobile */
+
   .grid-responsive {
     @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6;
   }
-  
-  /* Card styles */
+
   .card {
     @apply bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200;
   }
-  
-  /* Button styles */
+
   .btn-primary {
     @apply bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
-  
+
   .btn-secondary {
     @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-colors;
   }
-  
-  /* Form inputs */
+
   .input-primary {
     @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all;
   }
-  
-  /* Search Bar - Jumia Style */
+
+  /* Search */
   .search-container {
     @apply w-full max-w-3xl mx-auto;
   }
-  
+
   .search-input {
     @apply w-full py-3 pl-12 pr-24 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-gray-50;
   }
-  
+
   .search-button {
     @apply absolute right-1 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-6 py-1.5 rounded-full text-sm font-medium hover:bg-blue-700 transition;
   }
-  
+
   .search-icon {
     @apply absolute left-4 top-1/2 -translate-y-1/2 text-gray-400;
   }
 }
 
-/* ============================================
-   SEARCH BAR - JUMIA STYLE (Centered, Prominent)
-   ============================================ */
+/* =========================================================
+   SEARCH WRAPPER
+   ========================================================= */
 
 .search-wrapper {
   position: relative;
@@ -88,6 +87,7 @@
 
 .search-wrapper input {
   width: 100%;
+  box-sizing: border-box;
   padding: 12px 20px 12px 45px;
   border: 1px solid #e5e7eb;
   border-radius: 9999px;
@@ -109,6 +109,7 @@
   top: 50%;
   transform: translateY(-50%);
   color: #9ca3af;
+  pointer-events: none;
 }
 
 .search-wrapper button {
@@ -131,114 +132,193 @@
   background-color: #2563eb;
 }
 
-/* Mobile search bar adjustments */
-@media (max-width: 640px) {
-  .search-wrapper {
+/* =========================================================
+   HEADER - SAFE BASE
+   ========================================================= */
+
+header {
+  position: relative;
+  z-index: 50;
+  width: 100%;
+}
+
+/* Never allow header children to create horizontal overflow */
+header * {
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   HEADER - DESKTOP
+   ========================================================= */
+
+@media (min-width: 769px) {
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+}
+
+/* =========================================================
+   HEADER - MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  header {
+    position: relative;
+    width: 100%;
+    overflow: visible;
+  }
+
+  /*
+   * Do NOT force hidden elements to display.
+   * Tailwind's hidden / flex / md:flex classes
+   * are allowed to work normally.
+   */
+
+  header nav {
+    width: 100%;
+  }
+
+  /*
+   * Navigation should stay inside the screen.
+   */
+  header nav ul {
     max-width: 100%;
   }
-  
-  .search-wrapper input {
-    padding: 10px 12px 10px 38px;
-    font-size: 13px;
+
+  /*
+   * Prevent long text from pushing the logo
+   * or menu outside the viewport.
+   */
+  header a,
+  header button {
+    min-width: 0;
   }
-  
-  .search-wrapper .search-icon {
-    left: 12px;
+
+  /*
+   * Header images must remain contained.
+   */
+  header img {
+    max-width: 100%;
+    height: auto;
   }
-  
-  .search-wrapper button {
-    padding: 4px 12px;
-    font-size: 12px;
+
+  /*
+   * Search gets its own safe row.
+   */
+  header .search-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    z-index: 2;
+  }
+
+  header .search-wrapper input {
+    width: 100%;
+    min-height: 48px;
+    box-sizing: border-box;
+    font-size: 16px;
   }
 }
 
-/* ============================================
-   MOBILE RESPONSIVE UTILITIES - FIXED
-   ============================================ */
+/* =========================================================
+   HEADER - SMALL PHONES
+   ========================================================= */
 
-/* Extra small devices (phones, 480px and up) */
-@media (min-width: 480px) {
-  .xs\:block {
-    display: block;
+@media (max-width: 480px) {
+  header {
+    min-width: 0;
   }
-  .xs\:inline {
-    display: inline;
+
+  header img {
+    max-width: 130px;
   }
-  .xs\:hidden {
-    display: none;
+
+  header .search-wrapper {
+    width: 100%;
+    padding: 0 12px;
+    box-sizing: border-box;
   }
-  .xs\:flex {
-    display: flex;
+
+  header .search-wrapper input {
+    min-height: 46px;
+    font-size: 16px;
   }
 }
 
-/* Small devices (phones, 640px and down) - MAIN FIXES */
+/* =========================================================
+   GENERAL MOBILE RESPONSIVE
+   ========================================================= */
+
 @media (max-width: 640px) {
-  /* Container fixes */
   .container-custom {
     @apply px-3;
   }
-  
-  /* Product card fixes */
+
+  /* Product cards */
   .product-card {
     @apply p-2;
   }
-  
+
   .product-card .product-image-container {
     aspect-ratio: 1 / 1;
   }
-  
+
   .product-card .product-title {
     font-size: 0.75rem;
     line-height: 1.2;
   }
-  
+
   .product-card .product-price {
     font-size: 0.875rem;
   }
-  
-  /* Flash sale timer fixes */
-  .flash-sale-timer {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem;
-  }
-  
-  .timer-unit {
-    min-width: 60px;
-    text-align: center;
-    padding: 0.5rem;
-    background: #f3f4f6;
-    border-radius: 0.5rem;
-  }
-  
-  /* Hero section fixes */
+
+  /* Hero */
   .hero-section {
     padding: 1rem;
   }
-  
+
   .hero-title {
     font-size: 1.25rem;
   }
-  
-  /* Fix for chat button - make it visible */
+
+  /* Search */
+  .search-wrapper {
+    max-width: 100%;
+  }
+
+  .search-wrapper input {
+    padding: 10px 12px 10px 38px;
+    font-size: 16px;
+  }
+
+  .search-wrapper .search-icon {
+    left: 12px;
+  }
+
+  .search-wrapper button {
+    padding: 4px 12px;
+    font-size: 12px;
+  }
+
+  /* Chat button */
   .chat-button {
     position: fixed;
     bottom: 1rem;
     right: 1rem;
-    z-index: 50;
+    z-index: 40;
     width: 3rem;
     height: 3rem;
     border-radius: 9999px;
-    background-color: #3b82f6;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
-  
-  /* Ensure dropdowns are visible */
+
+  /* Dropdown */
   .dropdown-content {
     position: fixed;
     left: 0;
@@ -249,9 +329,46 @@
   }
 }
 
-/* ============================================
-   FLASH SALE TIMER - FIXED for mobile
-   ============================================ */
+/* =========================================================
+   EXTRA SMALL DEVICES
+   ========================================================= */
+
+@media (min-width: 480px) {
+  .xs\:block {
+    display: block;
+  }
+
+  .xs\:inline {
+    display: inline;
+  }
+
+  .xs\:hidden {
+    display: none;
+  }
+
+  .xs\:flex {
+    display: flex;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+
+  /*
+   * Keep tap targets usable without forcing
+   * every element to become huge.
+   */
+  button,
+  [role="button"] {
+    min-height: 44px;
+  }
+}
+
+/* =========================================================
+   FLASH SALE TIMER
+   ========================================================= */
 
 .flash-sale-container {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
@@ -292,20 +409,21 @@
   .timer-number {
     font-size: 1.5rem;
   }
+
   .timer-label {
     font-size: 0.7rem;
   }
 }
 
-/* ============================================
-   CHAT BUTTON - Always visible
-   ============================================ */
+/* =========================================================
+   CHAT BUTTON
+   ========================================================= */
 
 .chat-widget {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 100;
+  z-index: 40;
 }
 
 .chat-toggle {
@@ -332,9 +450,9 @@
   }
 }
 
-/* ============================================
-   PRODUCT GRID - Fixed for mobile
-   ============================================ */
+/* =========================================================
+   PRODUCT GRID
+   ========================================================= */
 
 .products-grid {
   display: grid;
@@ -364,9 +482,9 @@
   }
 }
 
-/* ============================================
-   PRODUCT CARD - Fixed for mobile
-   ============================================ */
+/* =========================================================
+   PRODUCT CARD
+   ========================================================= */
 
 .product-card {
   background: white;
@@ -422,9 +540,9 @@
   color: #10b981;
 }
 
-/* ============================================
-   LOCATION SELECTOR - Prevent cutoff
-   ============================================ */
+/* =========================================================
+   LOCATION SELECTOR
+   ========================================================= */
 
 .location-wrapper {
   max-width: 120px;
@@ -445,14 +563,139 @@
   }
 }
 
-/* ============================================
+/* =========================================================
+   COUNTRY SELECTOR
+   ========================================================= */
+
+.country-selector {
+  max-width: 100px;
+  overflow: visible !important;
+}
+
+.country-selector button span {
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .country-selector {
+    max-width: 70px;
+  }
+
+  .country-selector button span:last-child {
+    display: none;
+  }
+}
+
+/* =========================================================
+   PRODUCT IMAGE FIXES
+   ========================================================= */
+
+.product-image-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background-color: #f3f4f6;
+}
+
+.product-image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.product-image-container span img {
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+.aspect-square img,
+.aspect-square span img {
+  object-fit: contain !important;
+  object-position: center !important;
+  padding: 0.5rem;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* =========================================================
+   DASHBOARD RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .space-y-6 > * + * {
+    margin-top: 1rem;
+  }
+
+  .grid-cols-2.md\:grid-cols-4 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .grid-cols-2.md\:grid-cols-4 button {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   SEARCH ENHANCEMENTS
+   ========================================================= */
+
+.search-centered {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+.search-input-focus {
+  transition: all 0.3s ease;
+}
+
+.search-input-focus:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  border-color: #3b82f6;
+}
+
+@media (max-width: 768px) {
+  .search-wrapper input {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .search-wrapper {
+    max-width: 700px;
+  }
+
+  .search-wrapper input {
+    padding: 14px 20px 14px 50px;
+    font-size: 16px;
+  }
+
+  .search-wrapper button {
+    padding: 8px 24px;
+    font-size: 14px;
+  }
+}
+
+/* =========================================================
    ANIMATIONS
-   ============================================ */
+   ========================================================= */
 
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -463,6 +706,7 @@
     transform: translateY(20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -474,6 +718,7 @@
     transform: translateY(-20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -481,9 +726,11 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -505,11 +752,10 @@
   animation: pulse 2s ease-in-out infinite;
 }
 
-/* ============================================
+/* =========================================================
    UTILITY CLASSES
-   ============================================ */
+   ========================================================= */
 
-/* Line clamp utilities */
 .line-clamp-1 {
   overflow: hidden;
   display: -webkit-box;
@@ -531,7 +777,10 @@
   -webkit-box-orient: vertical;
 }
 
-/* Hide scrollbar but keep functionality */
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -541,7 +790,6 @@
   display: none;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -561,18 +809,23 @@
   background: #a8a8a8;
 }
 
-/* Focus outline for accessibility */
+/* =========================================================
+   FOCUS
+   ========================================================= */
+
 *:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
 
-/* Disable focus outline for mouse users */
 *:focus:not(:focus-visible) {
   outline: none;
 }
 
-/* Loading spinner */
+/* =========================================================
+   LOADING SPINNER
+   ========================================================= */
+
 .spinner {
   border: 3px solid #f3f3f3;
   border-top: 3px solid #3b82f6;
@@ -583,13 +836,26 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-/* Skeleton loading */
+/* =========================================================
+   SKELETON
+   ========================================================= */
+
 .skeleton {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
   background-size: 200% 100%;
   animation: loading 1.5s infinite;
 }
@@ -598,14 +864,15 @@
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
 }
 
-/* ============================================
-   MODAL RESPONSIVE
-   ============================================ */
+/* =========================================================
+   MODAL
+   ========================================================= */
 
 .modal-overlay {
   @apply fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4;
@@ -621,9 +888,9 @@
   }
 }
 
-/* ============================================
+/* =========================================================
    TABLE RESPONSIVE
-   ============================================ */
+   ========================================================= */
 
 @media (max-width: 768px) {
   .table-responsive {
@@ -632,22 +899,22 @@
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   .table-responsive table {
     display: block;
     width: 100%;
   }
 }
 
-/* ============================================
-   CHAT BUTTON FIX - Make it visible on mobile
-   ============================================ */
+/* =========================================================
+   FIXED CHAT BUTTON
+   ========================================================= */
 
 .fixed-chat-button {
   position: fixed;
   bottom: 80px;
   right: 16px;
-  z-index: 999;
+  z-index: 40;
 }
 
 @media (max-width: 640px) {
@@ -657,178 +924,29 @@
   }
 }
 
-/* Location selector - prevent cutoff */
-.country-selector {
-  max-width: 100px;
-  overflow: visible !important;
-}
+/* =========================================================
+   IMPORTANT:
+   DO NOT ADD GLOBAL RULES LIKE THESE:
+   
+   .absolute {
+     z-index: 99999 !important;
+   }
 
-.country-selector button span {
-  white-space: nowrap;
-}
+   .relative {
+     z-index: 100000 !important;
+   }
 
-@media (max-width: 480px) {
-  .country-selector {
-    max-width: 70px;
-  }
-  .country-selector button span:last-child {
-    display: none;
-  }
-}
+   header .hidden {
+     display: flex !important;
+   }
 
-/* ============================================
-   PRODUCT CARD IMAGE FIXES
-   ============================================ */
+   nav .hidden {
+     display: flex !important;
+   }
 
-/* Fix for product images being cut off */
-.product-image-container {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  background-color: #f3f4f6;
-}
+   .relative .absolute {
+     pointer-events: auto !important;
+   }
 
-.product-image-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-}
-
-/* Fix for Next.js Image component with fill */
-.relative img,
-.relative span img {
-  object-fit: contain !important;
-  object-position: center !important;
-}
-
-/* Ensure images don't get cut off in cards */
-.aspect-square img,
-.aspect-square span img {
-  object-fit: contain !important;
-  padding: 0.5rem;
-}
-
-/* Force all images to be contained */
-img {
-  max-width: 100%;
-  height: auto;
-}
-
-/* ============================================
-   FORCE ALL FEATURES VISIBLE ON MOBILE
-   ============================================ */
-
-/* Override any hiding on mobile - force everything to be visible */
-@media (max-width: 768px) {
-  /* Remove any display:none that might hide elements */
-  .hidden-mobile,
-  .mobile-hide,
-  .desktop-only {
-    display: block !important;
-  }
-  
-  /* Make sure dropdowns work on mobile */
-  .dropdown-menu {
-    position: static !important;
-    width: 100% !important;
-    margin-top: 0.5rem !important;
-  }
-  
-  /* Ensure all navigation items are visible */
-  nav .hidden,
-  header .hidden {
-    display: flex !important;
-  }
-}
-
-/* Extra small devices - ensure text is readable */
-@media (max-width: 480px) {
-  body {
-    font-size: 14px;
-  }
-  
-  /* Make tap targets larger */
-  button, 
-  a,
-  [role="button"] {
-    min-height: 44px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
-}
-
-/* Ensure dashboard is fully visible on mobile */
-@media (max-width: 768px) {
-  .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 {
-    grid-template-columns: 1fr !important;
-  }
-  
-  /* Make dashboard cards stack vertically */
-  .space-y-6 > * + * {
-    margin-top: 1rem;
-  }
-  
-  /* Make quick action buttons full width on mobile */
-  .grid-cols-2.md\:grid-cols-4 {
-    grid-template-columns: 1fr 1fr !important;
-  }
-  
-  .grid-cols-2.md\:grid-cols-4 button {
-    width: 100%;
-  }
-}
-
-/* Prevent horizontal scroll on body */
-body {
-  overflow-x: hidden;
-  width: 100%;
-}
-
-/* ============================================
-   SEARCH BAR ENHANCEMENTS - JUMIA STYLE
-   ============================================ */
-
-/* Centered search container */
-.search-centered {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  padding: 0 1rem;
-}
-
-/* Search input focus effect */
-.search-input-focus {
-  transition: all 0.3s ease;
-}
-
-.search-input-focus:focus {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-  border-color: #3b82f6;
-}
-
-/* Mobile search adjustments */
-@media (max-width: 768px) {
-  .search-wrapper input {
-    font-size: 16px; /* Prevents zoom on iOS */
-  }
-}
-
-/* Desktop search prominence */
-@media (min-width: 1024px) {
-  .search-wrapper {
-    max-width: 700px;
-  }
-  
-  .search-wrapper input {
-    padding: 14px 20px 14px 50px;
-    font-size: 16px;
-  }
-  
-  .search-wrapper button {
-    padding: 8px 24px;
-    font-size: 14px;
-  }
-}
+   Those rules break responsive layouts.
+   ========================================================= */

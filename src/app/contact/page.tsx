@@ -1,108 +1,184 @@
-'use client';
+import Link from 'next/link';
+import {
+  ArrowRight,
+  Building2,
+  Mail,
+  MapPin,
+  Phone,
+} from 'lucide-react';
 
-import { useState } from 'react';
-import { Mail, Phone, MapPin, Send } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Card } from '@/components/ui/Card';
+export const metadata = {
+  title: 'Contact Us | FitTrust Nigeria Limited',
+  description:
+    'Contact FitTrust Nigeria Limited for medical equipment, laboratory supplies, diagnostic products, and healthcare consumables.',
+};
+
+const offices = [
+  {
+    title: 'Head Office — Lagos',
+    address: (
+      <>
+        Shop 12, No. 35 Idagundanran Street,
+        <br />
+        Idumota, Lagos, Nigeria
+      </>
+    ),
+  },
+  {
+    title: 'Branch Office — Kano',
+    address: (
+      <>
+        Shop No. D2, Malam Kato Square Market,
+        <br />
+        Off Niger Street, Fagge, Kano, Nigeria
+      </>
+    ),
+  },
+];
 
 export default function ContactPage() {
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      setSent(true);
-    }, 1500);
-  };
-
   return (
-    <div className="max-w-7xl mx-auto px-4 py-16">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">Contact Us</h1>
-        <p className="text-gray-600 max-w-2xl mx-auto">
-          Have a question about a product, need help with an order, or looking for bulk pricing? Our team is here to help.
-        </p>
-      </div>
+    <main className="min-h-screen bg-slate-50">
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Contact Info */}
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="p-6 flex items-start gap-4">
-            <div className="bg-blue-50 p-3 rounded-full text-blue-600">
-              <Phone size={24} />
+      {/* HERO */}
+      <section className="bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+          <div className="max-w-3xl text-white">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur">
+              <Building2 className="h-4 w-4" />
+              FitTrust Nigeria Limited
             </div>
-            <div>
-              <h3 className="font-bold text-gray-900">Phone</h3>
-              <p className="text-gray-600 mt-1">+2348083483440,+2348164091531</p>
-              <p className="text-sm text-gray-500 mt-1">Mon-Fri from 8am to 5pm.</p>
-            </div>
-          </Card>
 
-          <Card className="p-6 flex items-start gap-4">
-            <div className="bg-blue-50 p-3 rounded-full text-blue-600">
-              <Mail size={24} />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900">Email</h3>
-              <p className="text-gray-600 mt-1">fittrustsurgical@gmail.com</p>
-              <p className="text-sm text-gray-500 mt-1">We'll respond within 24 hours.</p>
-            </div>
-          </Card>
+            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
+              Contact Us
+            </h1>
 
-          <Card className="p-6 flex items-start gap-4">
-            <div className="bg-blue-50 p-3 rounded-full text-blue-600">
-              <MapPin size={24} />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900">Office</h3>
-              <p className="text-gray-600 mt-1">123 Healthway Drive<br />Medical District, NY 10001</p>
-            </div>
-          </Card>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-blue-100 sm:text-lg">
+              Get in touch with FitTrust Nigeria Limited for medical
+              equipment, laboratory supplies, diagnostic products, and
+              healthcare consumables.
+            </p>
+          </div>
         </div>
+      </section>
 
-        {/* Contact Form */}
-        <div className="lg:col-span-2">
-          <Card className="p-8">
-            {sent ? (
-              <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600 mb-4">
-                  <Send size={32} />
+      {/* OFFICES */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-bold uppercase tracking-widest text-blue-600">
+              Our Offices
+            </p>
+
+            <h2 className="mt-3 text-3xl font-bold text-gray-900 sm:text-4xl">
+              Find Us
+            </h2>
+
+            <p className="mt-4 text-gray-600">
+              Visit or contact our offices in Lagos and Kano.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+
+            {offices.map((office) => (
+              <div
+                key={office.title}
+                className="rounded-2xl border border-gray-100 bg-slate-50 p-7 shadow-sm"
+              >
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+                  <MapPin className="h-6 w-6" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Message Sent!</h3>
-                <p className="text-gray-600">We've received your message and will get back to you shortly.</p>
-                <Button className="mt-6" onClick={() => setSent(false)}>Send Another Message</Button>
+
+                <h3 className="text-xl font-bold text-gray-900">
+                  {office.title}
+                </h3>
+
+                <p className="mt-4 text-base leading-7 text-gray-600">
+                  {office.address}
+                </p>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <Input label="First Name" required />
-                  <Input label="Last Name" required />
-                </div>
-                <Input label="Email Address" type="email" required />
-                <Input label="Subject" required />
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                  <textarea 
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all min-h-[150px]"
-                    required
-                    placeholder="How can we help you?"
-                  ></textarea>
-                </div>
+            ))}
 
-                <Button type="submit" size="lg" isLoading={loading} className="w-full sm:w-auto">
-                  Send Message
-                </Button>
-              </form>
-            )}
-          </Card>
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
+
+      {/* CONTACT DETAILS */}
+      <section className="bg-slate-50">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+
+          <div className="grid gap-6 md:grid-cols-3">
+
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+              <Phone className="h-7 w-7 text-blue-600" />
+
+              <h3 className="mt-4 text-lg font-bold text-gray-900">
+                Phone
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Contact FitTrust Nigeria Limited for enquiries and product
+                information.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+              <Mail className="h-7 w-7 text-blue-600" />
+
+              <h3 className="mt-4 text-lg font-bold text-gray-900">
+                Email
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Get in touch with our team for enquiries and business
+                correspondence.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+              <MapPin className="h-7 w-7 text-blue-600" />
+
+              <h3 className="mt-4 text-lg font-bold text-gray-900">
+                Locations
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Lagos Head Office and Kano Branch Office.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="bg-blue-700">
+        <div className="mx-auto max-w-5xl px-4 py-14 text-center text-white sm:px-6 lg:px-8">
+
+          <h2 className="text-3xl font-bold sm:text-4xl">
+            Looking for medical supplies?
+          </h2>
+
+          <p className="mx-auto mt-4 max-w-2xl leading-7 text-blue-100">
+            Explore our catalogue to learn more about our medical,
+            laboratory, and diagnostic products.
+          </p>
+
+          <div className="mt-7">
+            <Link
+              href="/products"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 font-bold text-blue-700 transition hover:bg-blue-50"
+            >
+              Browse Products
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
   );
 }
